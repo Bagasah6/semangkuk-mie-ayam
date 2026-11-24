@@ -112,8 +112,10 @@ button{font:inherit;cursor:pointer;color:inherit}
 .slots-wrap[open] .slots{margin-top:10px}
 .btn.trakteer{width:100%;background:linear-gradient(180deg,#ff7675,#d63031);color:#fff;text-decoration:none;font-size:17px;padding:13px 16px;text-shadow:0 1px 0 rgba(0,0,0,.25)}
 .btn.more-games{width:100%;font-size:15px;padding:11px 14px}
-.game-card{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--cream);border:2.5px solid var(--brown);border-radius:14px;padding:12px 14px;text-decoration:none;color:var(--brown);box-shadow:0 3px 0 var(--brown)}
+.game-card{display:flex;align-items:center;gap:12px;background:var(--cream);border:2.5px solid var(--brown);border-radius:14px;padding:12px 14px;text-decoration:none;color:var(--brown);box-shadow:0 3px 0 var(--brown)}
 .game-card:active{transform:translateY(2px);box-shadow:0 1px 0 var(--brown)}
+.game-icon{width:48px;height:48px;border-radius:12px;border:2px solid var(--brown);flex:none;object-fit:cover}
+.game-card>div{flex:1;min-width:0}
 .game-card b{display:block;font-family:var(--font-game);font-weight:400;font-size:18px}
 .game-card span{display:block;font-size:13px;font-weight:700;color:var(--muted)}
 
@@ -339,8 +341,9 @@ button{font:inherit;cursor:pointer;color:inherit}
     <div class="sheet-head"><h2 id="hGames">More games by @muhbagasah</h2><button class="closebtn" data-close aria-label="Tutup"><svg class="ic"><use href="#i-x"/></svg></button></div>
     <p class="note">Game santai lainnya buatan @muhbagasah:</p>
     <a class="game-card" href="https://ketua-rt.mbagasah.workers.dev/" target="_blank" rel="noopener noreferrer">
-      <div><b>🏘️ Simulasi Ketua RT</b><span>Urus warga, selesaikan drama RT, dan jaga kerukunan kampung!</span></div>
-      <span class="btn small">Main →</span>
+      <img class="game-icon" src="assets/ketua-rt-icon.png" alt="Ketua RT" width="48" height="48">
+      <div><b>Ketua RT</b><span>Setiap Keputusan Punya Konsekuensi</span></div>
+      <span class="btn small">Main</span>
     </a>
   </div>
 </div>
