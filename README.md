@@ -1,6 +1,6 @@
 # Semangkuk Mie Ayam
 
-Game 2048 santai bertema warung mie ayam. Geser dan gabungkan mangkuk yang sama sampai jadi semangkuk mie ayam komplit dengan es teh manis.
+Teman neduh saat abang mie ayam belum lewat. Game 2048 santai bertema warung mie ayam — geser dan gabungkan mangkuk yang sama sampai jadi semangkuk mie ayam komplit dengan es teh manis.
 
 - Tanpa timer, dengan skor dan skor terbaik
 - 3 slot simpanan, tersimpan otomatis di browser

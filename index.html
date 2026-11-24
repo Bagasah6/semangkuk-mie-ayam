@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffd23f">
-<meta name="description" content="Game 2048 santai: racik semangkuk mie ayam komplit.">
+<meta name="description" content="Teman neduh saat abang mie ayam belum lewat. Game 2048 santai racik semangkuk mie ayam komplit.">
+<meta property="og:title" content="Semangkuk Mie Ayam">
+<meta property="og:description" content="Teman neduh saat abang mie ayam belum lewat">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Mie Ayam">
@@ -79,6 +81,7 @@ button{font:inherit;cursor:pointer;color:inherit}
 /* beranda */
 .home-top{display:flex;justify-content:flex-end}
 .logo{display:block;width:min(78%,300px);height:auto;margin:-30px auto 0;filter:drop-shadow(0 8px 10px rgba(91,38,17,.25))}
+.home-tagline{text-align:center;color:var(--muted);font-weight:800;font-size:14px;margin:-4px 0 4px}
 .best-pill{align-self:center;display:flex;align-items:center;gap:10px;background:var(--brown);color:var(--cream-2);border-radius:999px;padding:8px 18px}
 .best-pill span{font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--yellow)}
 .best-pill b{font-family:var(--font-game);font-weight:400;font-size:22px;font-variant-numeric:tabular-nums}
@@ -234,6 +237,7 @@ button{font:inherit;cursor:pointer;color:inherit}
     <button class="btn icon sec sound-btn" aria-label="Suara: mati" aria-pressed="false"><svg class="ic"><use href="#i-mute"/></svg></button>
   </div>
   <img class="logo" src="assets/logo.webp" alt="Semangkuk Mie Ayam" width="720" height="540">
+  <p class="home-tagline">Teman neduh saat abang mie ayam belum lewat</p>
   <div class="best-pill"><span>Skor terbaik</span><b id="homeBest">0</b></div>
 
   <button class="btn big" id="continueBtn" hidden><svg class="ic fill"><use href="#i-play"/></svg><span id="continueLbl">Lanjutkan</span></button>
@@ -326,7 +330,6 @@ button{font:inherit;cursor:pointer;color:inherit}
     <div id="cardHolder"></div>
     <div class="row">
       <button class="btn" id="shareBtn"><svg class="ic"><use href="#i-share"/></svg>Bagikan</button>
-      <button class="btn sec" id="copyBtn"><svg class="ic"><use href="#i-copy"/></svg>Salin teks</button>
     </div>
     <p class="note" id="shareNote" hidden>Tekan lama gambar kartu (HP) atau klik kanan, lalu simpan untuk dibagikan.</p>
     <div class="row">
@@ -685,8 +688,9 @@ const loadImg=src=>new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.o
 function wrapText(ctx,text,x,y,maxW,lh){const words=text.split(" ");let line="";const lines=[];for(const w of words){const t=line?line+" "+w:w;if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=w;}else line=t;}if(line)lines.push(line);lines.forEach((l,i)=>ctx.fillText(l,x,y+i*lh));return y+lines.length*lh;}
 async function openCard(){
   const L=LEVELS[best-1];
-  const tanggal=new Date().toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
-  cardText=`🍜 Kartu Racikan Semangkuk Mie Ayam\nMangkuk terbaik: ${L.name} (${L.v})\nSkor: ${fmt(score)} · Skor terbaik: ${fmt(bestScore)}\nSemangkuk Komplit: ${fmt(rack)} mangkuk\nDiracik sambil rebahan · ${tanggal}`;
+  const isRecord=score>0&&score>=bestScore;
+  const gameUrl=location.origin+location.pathname;
+  cardText=`🍜 Kartu Racikan Semangkuk Mie Ayam\nTeman neduh saat abang mie ayam belum lewat\n\nMangkuk terbaik ${L.name}\nSkor ${fmt(score)}${isRecord?" 🏆 Rekor baru!":""}\nSemangkuk Komplit ${fmt(rack)} mangkuk\n\nDiracik sambil rebahan\nYuk ikut ngeracik juga 👉 ${gameUrl}`;
   $("shareNote").hidden=true;
   $("cardHolder").innerHTML='<p class="note">Menyiapkan kartu…</p>';
   openModal("modalCard");
@@ -705,10 +709,12 @@ async function openCard(){
   if(bowl){ctx.save();ctx.shadowColor="rgba(91,38,17,.35)";ctx.shadowBlur=40;ctx.shadowOffsetY=18;ctx.drawImage(bowl,W/2-300,450,600,600);ctx.restore();}
   ctx.font='400 64px "Lilita One", sans-serif';ctx.lineJoin="round";ctx.lineWidth=12;ctx.strokeStyle="#5b2611";ctx.fillStyle="#ffd23f";
   ctx.strokeText(L.name,W/2,1110);ctx.fillText(L.name,W/2,1110);
-  ctx.font='400 46px "Lilita One", sans-serif';ctx.fillStyle="#fff3d6";
-  ctx.fillText(`Skor ${fmt(score)}   ·   Terbaik ${fmt(bestScore)}`,W/2,1190);
-  ctx.font='800 30px Nunito, sans-serif';ctx.fillStyle="rgba(255,243,214,.85)";
-  ctx.fillText(`${fmt(rack)} Semangkuk Komplit · Diracik sambil rebahan · ${tanggal}`,W/2,1262);
+  ctx.font='400 44px "Lilita One", sans-serif';ctx.fillStyle=isRecord?"#ffd23f":"#fff3d6";
+  ctx.fillText(`Skor ${fmt(score)}${isRecord?" ★ Rekor Baru!":""}`,W/2,1180);
+  ctx.font='800 28px Nunito, sans-serif';ctx.fillStyle="rgba(255,243,214,.9)";
+  ctx.fillText(`${fmt(rack)} Semangkuk Komplit — Diracik sambil rebahan`,W/2,1242);
+  ctx.font='800 26px Nunito, sans-serif';ctx.fillStyle="#ffd23f";
+  ctx.fillText("Teman neduh saat abang mie ayam belum lewat — Yuk ikut ngeracik!",W/2,1292);
   const holder=$("cardHolder");holder.innerHTML="";
   try{
     const url=cv.toDataURL("image/png");const im=document.createElement("img");im.className="card-img";im.alt=`Kartu racikan: ${L.name}, skor ${fmt(score)}`;im.src=url;holder.appendChild(im);
@@ -726,10 +732,6 @@ $("shareBtn").onclick=async()=>{
     if(e&&e.name==="AbortError")return;
     $("shareNote").hidden=false;toast("Simpan gambar kartunya untuk dibagikan");
   }
-};
-$("copyBtn").onclick=()=>{
-  try{navigator.clipboard.writeText(cardText).then(()=>toast("Teks kartu tersalin"),()=>toast("Tidak bisa menyalin di perangkat ini"));}
-  catch(e){toast("Tidak bisa menyalin di perangkat ini");}
 };
 $("cardHome").onclick=goHome;
 $("cardAgain").onclick=()=>{closeModals();if(inGame)restart();};
