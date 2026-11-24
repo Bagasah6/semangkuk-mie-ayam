@@ -49,6 +49,10 @@ export async function onRequestPost(context) {
     totalScore: clampInt(body.totalScore, 0, 500000),
     maxScore: clampInt(body.maxScore, 0, 500000),
     offlineSyncs: clampInt(body.offlineSyncs, 0, 50),
+    trakteerClicks: clampInt(body.trakteerClicks, 0, 20),
+    shares: clampInt(body.shares, 0, 20),
+    pwaInstalls: clampInt(body.pwaInstalls, 0, 5),
+    returningSessions: clampInt(body.returningSessions, 0, 10),
   };
 
   const hasActivity =
@@ -57,7 +61,11 @@ export async function onRequestPost(context) {
       clean.gamesOver +
       clean.komplit +
       clean.totalScore +
-      clean.offlineSyncs >
+      clean.offlineSyncs +
+      clean.trakteerClicks +
+      clean.shares +
+      clean.pwaInstalls +
+      clean.returningSessions >
     0;
 
   if (!hasActivity) {

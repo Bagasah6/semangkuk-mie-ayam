@@ -4,7 +4,6 @@ import { DurableObject } from "cloudflare:workers";
 const FLUSH_INTERVAL_MS = 3 * 60 * 60 * 1000;
 
 function todayWIB() {
-  // Format YYYY-MM-DD zona waktu Asia/Jakarta (WIB)
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jakarta",
     year: "numeric",
@@ -26,9 +25,22 @@ export class AnalyticsBuffer extends DurableObject {
           komplit_count INTEGER NOT NULL DEFAULT 0,
           total_score INTEGER NOT NULL DEFAULT 0,
           max_score INTEGER NOT NULL DEFAULT 0,
-          offline_syncs INTEGER NOT NULL DEFAULT 0
+          offline_syncs INTEGER NOT NULL DEFAULT 0,
+          trakteer_clicks INTEGER NOT NULL DEFAULT 0,
+          shares INTEGER NOT NULL DEFAULT 0,
+          pwa_installs INTEGER NOT NULL DEFAULT 0,
+          returning_sessions INTEGER NOT NULL DEFAULT 0
         )
       `);
+      for (const col of ["trakteer_clicks", "shares", "pwa_installs", "returning_sessions"]) {
+        try {
+          this.ctx.storage.sql.exec(
+            `ALTER TABLE pending_daily ADD COLUMN ${col} INTEGER NOT NULL DEFAULT 0`
+          );
+        } catch {
+          // Kolom sudah ada
+        }
+      }
     });
   }
 
@@ -38,8 +50,11 @@ export class AnalyticsBuffer extends DurableObject {
       : todayWIB();
 
     this.ctx.storage.sql.exec(
-      `INSERT INTO pending_daily (date, sessions, games_started, games_over, komplit_count, total_score, max_score, offline_syncs)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+      `INSERT INTO pending_daily (
+         date, sessions, games_started, games_over, komplit_count, total_score, max_score,
+         offline_syncs, trakteer_clicks, shares, pwa_installs, returning_sessions
+       )
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
        ON CONFLICT(date) DO UPDATE SET
          sessions = sessions + excluded.sessions,
          games_started = games_started + excluded.games_started,
@@ -47,15 +62,23 @@ export class AnalyticsBuffer extends DurableObject {
          komplit_count = komplit_count + excluded.komplit_count,
          total_score = total_score + excluded.total_score,
          max_score = MAX(max_score, excluded.max_score),
-         offline_syncs = offline_syncs + excluded.offline_syncs`,
+         offline_syncs = offline_syncs + excluded.offline_syncs,
+         trakteer_clicks = trakteer_clicks + excluded.trakteer_clicks,
+         shares = shares + excluded.shares,
+         pwa_installs = pwa_installs + excluded.pwa_installs,
+         returning_sessions = returning_sessions + excluded.returning_sessions`,
       date,
-      payload.sessions,
-      payload.gamesStarted,
-      payload.gamesOver,
-      payload.komplit,
-      payload.totalScore,
-      payload.maxScore,
-      payload.offlineSyncs
+      payload.sessions || 0,
+      payload.gamesStarted || 0,
+      payload.gamesOver || 0,
+      payload.komplit || 0,
+      payload.totalScore || 0,
+      payload.maxScore || 0,
+      payload.offlineSyncs || 0,
+      payload.trakteerClicks || 0,
+      payload.shares || 0,
+      payload.pwaInstalls || 0,
+      payload.returningSessions || 0
     );
 
     const existingAlarm = await this.ctx.storage.getAlarm();
@@ -84,8 +107,11 @@ export class AnalyticsBuffer extends DurableObject {
 
     const now = new Date().toISOString();
     const stmt = this.env.DB.prepare(`
-      INSERT INTO daily_stats (date, sessions, games_started, games_over, komplit_count, total_score, max_score, offline_syncs, updated_at)
-      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+      INSERT INTO daily_stats (
+        date, sessions, games_started, games_over, komplit_count, total_score, max_score,
+        offline_syncs, trakteer_clicks, shares, pwa_installs, returning_sessions, updated_at
+      )
+      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
       ON CONFLICT(date) DO UPDATE SET
         sessions = sessions + excluded.sessions,
         games_started = games_started + excluded.games_started,
@@ -94,6 +120,10 @@ export class AnalyticsBuffer extends DurableObject {
         total_score = total_score + excluded.total_score,
         max_score = MAX(max_score, excluded.max_score),
         offline_syncs = offline_syncs + excluded.offline_syncs,
+        trakteer_clicks = trakteer_clicks + excluded.trakteer_clicks,
+        shares = shares + excluded.shares,
+        pwa_installs = pwa_installs + excluded.pwa_installs,
+        returning_sessions = returning_sessions + excluded.returning_sessions,
         updated_at = excluded.updated_at
     `);
 
@@ -107,13 +137,16 @@ export class AnalyticsBuffer extends DurableObject {
         r.total_score,
         r.max_score,
         r.offline_syncs,
+        r.trakteer_clicks || 0,
+        r.shares || 0,
+        r.pwa_installs || 0,
+        r.returning_sessions || 0,
         now
       )
     );
 
     await this.env.DB.batch(batch);
 
-    // Hapus buffer lokal hanya setelah D1 batch berhasil
     for (const r of rows) {
       this.ctx.storage.sql.exec("DELETE FROM pending_daily WHERE date = ?1", r.date);
     }

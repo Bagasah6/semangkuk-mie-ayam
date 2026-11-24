@@ -111,6 +111,11 @@ button{font:inherit;cursor:pointer;color:inherit}
 .slots-wrap[open] .slots-meta::after{transform:rotate(180deg)}
 .slots-wrap[open] .slots{margin-top:10px}
 .btn.trakteer{width:100%;background:linear-gradient(180deg,#ff7675,#d63031);color:#fff;text-decoration:none;font-size:17px;padding:13px 16px;text-shadow:0 1px 0 rgba(0,0,0,.25)}
+.btn.more-games{width:100%;font-size:15px;padding:11px 14px}
+.game-card{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--cream);border:2.5px solid var(--brown);border-radius:14px;padding:12px 14px;text-decoration:none;color:var(--brown);box-shadow:0 3px 0 var(--brown)}
+.game-card:active{transform:translateY(2px);box-shadow:0 1px 0 var(--brown)}
+.game-card b{display:block;font-family:var(--font-game);font-weight:400;font-size:18px}
+.game-card span{display:block;font-size:13px;font-weight:700;color:var(--muted)}
 
 /* meja racik */
 .topbar{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;gap:8px}
@@ -247,7 +252,8 @@ button{font:inherit;cursor:pointer;color:inherit}
     <button class="btn sec" data-open="modalHelp"><svg class="ic"><use href="#i-help"/></svg>Cara Main</button>
   </div>
 
-  <a class="btn trakteer" href="https://trakteer.id/mbagasah/tip" target="_blank" rel="noopener noreferrer">🍜 Traktir Mie Ayam Komplit</a>
+  <a class="btn trakteer" id="trakteerBtn" href="https://trakteer.id/mbagasah/tip" target="_blank" rel="noopener noreferrer">🍜 Traktir Mie Ayam Komplit</a>
+  <button class="btn sec more-games" data-open="modalGames">🎮 More games by @muhbagasah</button>
 </main>
 
 <!-- ===== MEJA RACIK ===== -->
@@ -325,6 +331,17 @@ button{font:inherit;cursor:pointer;color:inherit}
       <button class="btn sec" id="cardHome"><svg class="ic"><use href="#i-home"/></svg>Beranda</button>
       <button class="btn sec" id="cardAgain"><svg class="ic"><use href="#i-refresh"/></svg>Racik lagi</button>
     </div>
+  </div>
+</div>
+
+<div class="modal" id="modalGames" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="hGames">
+    <div class="sheet-head"><h2 id="hGames">More games by @muhbagasah</h2><button class="closebtn" data-close aria-label="Tutup"><svg class="ic"><use href="#i-x"/></svg></button></div>
+    <p class="note">Game santai lainnya buatan @muhbagasah:</p>
+    <a class="game-card" href="https://ketua-rt.mbagasah.workers.dev/" target="_blank" rel="noopener noreferrer">
+      <div><b>🏘️ Simulasi Ketua RT</b><span>Urus warga, selesaikan drama RT, dan jaga kerukunan kampung!</span></div>
+      <span class="btn small">Main →</span>
+    </a>
   </div>
 </div>
 
@@ -696,6 +713,7 @@ async function openCard(){
   }catch(e){cv.className="card-img";holder.appendChild(cv);cardBlob=null;}
 }
 $("shareBtn").onclick=async()=>{
+  trackEvent({shares:1});
   try{
     const file=cardBlob&&new File([cardBlob],"kartu-racikan-mie-ayam.png",{type:"image/png"});
     if(file&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text:cardText});return;}
@@ -730,30 +748,34 @@ function todayWIB(){
 }
 function readAnalytics(){
   try{const d=JSON.parse(localStorage.getItem(AKEY));if(d&&d.date)return d;}catch{}
-  return {date:todayWIB(),sessions:0,gamesStarted:0,gamesOver:0,komplit:0,totalScore:0,maxScore:0,offlineSyncs:0,wasOffline:false};
+  return {date:todayWIB(),sessions:0,gamesStarted:0,gamesOver:0,komplit:0,totalScore:0,maxScore:0,offlineSyncs:0,trakteerClicks:0,shares:0,pwaInstalls:0,returningSessions:0,wasOffline:false};
 }
 function writeAnalytics(d){try{localStorage.setItem(AKEY,JSON.stringify(d));}catch{}}
 function trackEvent(delta){
   const curDate=todayWIB();
   let d=readAnalytics();
-  if(d.date!==curDate){flushAnalytics(true);d={date:curDate,sessions:0,gamesStarted:0,gamesOver:0,komplit:0,totalScore:0,maxScore:0,offlineSyncs:0,wasOffline:false};}
+  if(d.date!==curDate){flushAnalytics(true);d={date:curDate,sessions:0,gamesStarted:0,gamesOver:0,komplit:0,totalScore:0,maxScore:0,offlineSyncs:0,trakteerClicks:0,shares:0,pwaInstalls:0,returningSessions:0,wasOffline:false};}
   d.sessions+=(delta.sessions||0);
   d.gamesStarted+=(delta.gamesStarted||0);
   d.gamesOver+=(delta.gamesOver||0);
   d.komplit+=(delta.komplit||0);
   d.totalScore+=(delta.totalScore||0);
   d.maxScore=Math.max(d.maxScore||0,delta.maxScore||0);
+  d.trakteerClicks=(d.trakteerClicks||0)+(delta.trakteerClicks||0);
+  d.shares=(d.shares||0)+(delta.shares||0);
+  d.pwaInstalls=(d.pwaInstalls||0)+(delta.pwaInstalls||0);
+  d.returningSessions=(d.returningSessions||0)+(delta.returningSessions||0);
   if(!navigator.onLine)d.wasOffline=true;
   writeAnalytics(d);
 }
 function flushAnalytics(useFetch=false){
   if(!navigator.onLine)return;
   const d=readAnalytics();
-  const total=d.sessions+d.gamesStarted+d.gamesOver+d.komplit+d.totalScore;
+  const total=d.sessions+d.gamesStarted+d.gamesOver+d.komplit+d.totalScore+(d.trakteerClicks||0)+(d.shares||0)+(d.pwaInstalls||0)+(d.returningSessions||0);
   if(total<=0)return;
-  const payload={date:d.date,sessions:d.sessions,gamesStarted:d.gamesStarted,gamesOver:d.gamesOver,komplit:d.komplit,totalScore:d.totalScore,maxScore:d.maxScore,offlineSyncs:d.wasOffline?1:0};
+  const payload={date:d.date,sessions:d.sessions,gamesStarted:d.gamesStarted,gamesOver:d.gamesOver,komplit:d.komplit,totalScore:d.totalScore,maxScore:d.maxScore,offlineSyncs:d.wasOffline?1:0,trakteerClicks:d.trakteerClicks||0,shares:d.shares||0,pwaInstalls:d.pwaInstalls||0,returningSessions:d.returningSessions||0};
   const body=JSON.stringify(payload);
-  writeAnalytics({date:todayWIB(),sessions:0,gamesStarted:0,gamesOver:0,komplit:0,totalScore:0,maxScore:0,offlineSyncs:0,wasOffline:false});
+  writeAnalytics({date:todayWIB(),sessions:0,gamesStarted:0,gamesOver:0,komplit:0,totalScore:0,maxScore:0,offlineSyncs:0,trakteerClicks:0,shares:0,pwaInstalls:0,returningSessions:0,wasOffline:false});
   if(!useFetch&&navigator.sendBeacon){
     const ok=navigator.sendBeacon("/api/analytics",new Blob([body],{type:"application/json"}));
     if(ok)return;
@@ -762,13 +784,18 @@ function flushAnalytics(useFetch=false){
     const cur=readAnalytics();
     cur.sessions+=payload.sessions;cur.gamesStarted+=payload.gamesStarted;cur.gamesOver+=payload.gamesOver;
     cur.komplit+=payload.komplit;cur.totalScore+=payload.totalScore;cur.maxScore=Math.max(cur.maxScore,payload.maxScore);
+    cur.trakteerClicks=(cur.trakteerClicks||0)+payload.trakteerClicks;cur.shares=(cur.shares||0)+payload.shares;
+    cur.pwaInstalls=(cur.pwaInstalls||0)+payload.pwaInstalls;cur.returningSessions=(cur.returningSessions||0)+payload.returningSessions;
     cur.wasOffline=true;writeAnalytics(cur);
   });
 }
 
 window.claude?.hot?.snapshot?.(()=>{save();return {};});
 window.claude?.hot?.ready?window.claude.hot.ready(()=>start()):start();
-trackEvent({sessions:1});
+const isReturning=bestScore>0||store.slots.some(hasGame);
+trackEvent({sessions:1,returningSessions:isReturning?1:0});
+$("trakteerBtn").addEventListener("click",()=>trackEvent({trakteerClicks:1}));
+window.addEventListener("appinstalled",()=>trackEvent({pwaInstalls:1}));
 window.addEventListener("pagehide",()=>{save();flushAnalytics(false);});
 document.addEventListener("visibilitychange",()=>{if(document.hidden){save();flushAnalytics(false);}});
 window.addEventListener("online",()=>flushAnalytics(true));

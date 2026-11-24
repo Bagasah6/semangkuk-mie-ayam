@@ -32,5 +32,9 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   total_score INTEGER NOT NULL DEFAULT 0,
   max_score INTEGER NOT NULL DEFAULT 0,
   offline_syncs INTEGER NOT NULL DEFAULT 0,
+  trakteer_clicks INTEGER NOT NULL DEFAULT 0,
+  shares INTEGER NOT NULL DEFAULT 0,
+  pwa_installs INTEGER NOT NULL DEFAULT 0,
+  returning_sessions INTEGER NOT NULL DEFAULT 0,
   updated_at TEXT NOT NULL
 );

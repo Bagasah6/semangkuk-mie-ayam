@@ -14,6 +14,7 @@
       --yellow: #ffd23f;
       --border: #e7cfa8;
       --green: #2e7d32;
+      --red: #c62828;
     }
     * { box-sizing: border-box; }
     body {
@@ -23,7 +24,7 @@
       color: var(--brown);
       padding: 20px 16px 48px;
     }
-    .wrap { max-width: 880px; margin: 0 auto; }
+    .wrap { max-width: 980px; margin: 0 auto; }
     header {
       display: flex;
       flex-wrap: wrap;
@@ -63,7 +64,7 @@
     button:disabled { opacity: 0.5; cursor: not-allowed; }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
       gap: 12px;
       margin-bottom: 16px;
     }
@@ -75,9 +76,14 @@
     }
     .stat .label { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
     .stat .val { font-size: 1.5rem; font-weight: 800; margin-top: 4px; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border); }
-    th { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; }
+    .stat .subval { font-size: 0.75rem; color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .delta { font-weight: 700; padding: 1px 6px; border-radius: 6px; font-size: 0.72rem; }
+    .delta.up { background: #dff5e1; color: var(--green); }
+    .delta.down { background: #fdecea; color: var(--red); }
+    .delta.flat { background: #f2eadc; color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; }
     .num { text-align: right; font-variant-numeric: tabular-nums; }
     .badge {
       display: inline-block;
@@ -99,7 +105,7 @@
     <header>
       <div>
         <h1>Analytics · Semangkuk Mie Ayam</h1>
-        <div class="sub">D1 Ultra-Hemat (Buffer DO flush 2 jam · Cache Edge 12 jam · ≤ 20 R/W per hari)</div>
+        <div class="sub">D1 Ultra-Hemat (Buffer DO flush 3 jam · Cache Edge 12 jam · ≤ 20 R/W per hari)</div>
       </div>
       <div class="row">
         <a href="./" style="color:var(--brown);font-weight:700;text-decoration:none;">← Kembali ke Game</a>
@@ -125,7 +131,7 @@
               <option value="14">14 Hari Terakhir (≤ 14 rows read)</option>
             </select>
             <button id="refreshBtn" class="sec">Muat Ulang (Cache)</button>
-            <button id="forceBtn" title="Bypass cache dan baca langsung dari D1">Force Refresh D1</button>
+            <button id="forceBtn" title="Flush buffer DO lalu baca langsung dari D1">Force Refresh D1</button>
           </div>
           <div class="row">
             <span id="cacheBadge" class="badge">-</span>
@@ -145,10 +151,14 @@
               <tr>
                 <th>Tanggal (WIB)</th>
                 <th class="num">Sesi</th>
+                <th class="num">Balik Lagi</th>
                 <th class="num">Mulai</th>
                 <th class="num">Game Over</th>
                 <th class="num">Komplit</th>
                 <th class="num">Skor Tertinggi</th>
+                <th class="num">Trakteer</th>
+                <th class="num">Share</th>
+                <th class="num">Install PWA</th>
                 <th class="num">Offline Sync</th>
               </tr>
             </thead>
@@ -166,6 +176,17 @@
 
     function getToken() {
       return sessionStorage.getItem(TOKEN_KEY) || "";
+    }
+
+    function deltaBadge(todayVal, yestVal) {
+      if (yestVal === null || yestVal === undefined) return "";
+      const diff = (todayVal || 0) - (yestVal || 0);
+      if (yestVal === 0 && todayVal === 0) return '<span class="delta flat">0% vs kemarin</span>';
+      if (yestVal === 0) return `<span class="delta up">+${fmt(todayVal)} vs kemarin</span>`;
+      const pct = Math.round((diff / yestVal) * 100);
+      const cls = pct > 0 ? "up" : pct < 0 ? "down" : "flat";
+      const sign = pct > 0 ? "+" : "";
+      return `<span class="delta ${cls}">${sign}${pct}% vs kemarin</span>`;
     }
 
     async function loadDashboard(force = false) {
@@ -217,33 +238,44 @@
       const tot = rows.reduce(
         (acc, r) => {
           acc.sessions += r.sessions || 0;
+          acc.returning += r.returning_sessions || 0;
           acc.started += r.games_started || 0;
           acc.over += r.games_over || 0;
           acc.komplit += r.komplit_count || 0;
+          acc.trakteer += r.trakteer_clicks || 0;
+          acc.shares += r.shares || 0;
+          acc.installs += r.pwa_installs || 0;
           acc.offline += r.offline_syncs || 0;
           acc.maxScore = Math.max(acc.maxScore, r.max_score || 0);
           return acc;
         },
-        { sessions: 0, started: 0, over: 0, komplit: 0, offline: 0, maxScore: 0 }
+        { sessions: 0, returning: 0, started: 0, over: 0, komplit: 0, trakteer: 0, shares: 0, installs: 0, offline: 0, maxScore: 0 }
       );
 
+      const today = rows[0] || null;
+      const yest = rows[1] || null;
+      const retPct = tot.sessions > 0 ? ((tot.returning / tot.sessions) * 100).toFixed(1) : "0.0";
+      const ctrPct = tot.sessions > 0 ? ((tot.trakteer / tot.sessions) * 100).toFixed(2) : "0.00";
+
       const cards = [
-        ["Total Sesi", fmt(tot.sessions)],
-        ["Game Dimulai", fmt(tot.started)],
-        ["Game Over", fmt(tot.over)],
-        ["Semangkuk Komplit", fmt(tot.komplit)],
-        ["Skor Tertinggi", fmt(tot.maxScore)],
-        ["Offline Syncs", fmt(tot.offline)],
+        ["Total Sesi", fmt(tot.sessions), today && yest ? deltaBadge(today.sessions, yest.sessions) : ""],
+        ["Pemain Balik Lagi", fmt(tot.returning), `${retPct}% retensi ${today && yest ? deltaBadge(today.returning_sessions, yest.returning_sessions) : ""}`],
+        ["Game Dimulai", fmt(tot.started), today && yest ? deltaBadge(today.games_started, yest.games_started) : ""],
+        ["Semangkuk Komplit", fmt(tot.komplit), today && yest ? deltaBadge(today.komplit_count, yest.komplit_count) : ""],
+        ["Skor Tertinggi", fmt(tot.maxScore), `${fmt(tot.over)} game selesai`],
+        ["Klik Trakteer", fmt(tot.trakteer), `${ctrPct}% CTR ${today && yest ? deltaBadge(today.trakteer_clicks, yest.trakteer_clicks) : ""}`],
+        ["Kartu Dibagikan", fmt(tot.shares), today && yest ? deltaBadge(today.shares, yest.shares) : ""],
+        ["Install PWA", fmt(tot.installs), `${fmt(tot.offline)} offline sync`],
       ];
 
       $("summaryGrid").innerHTML = cards
-        .map(([l, v]) => `<div class="stat"><div class="label">${l}</div><div class="val">${v}</div></div>`)
+        .map(([l, v, s]) => `<div class="stat"><div class="label">${l}</div><div class="val">${v}</div>${s ? `<div class="subval">${s}</div>` : ""}</div>`)
         .join("");
     }
 
     function renderTable(rows) {
       if (!rows.length) {
-        $("tableBody").innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);">Belum ada data tercatat di D1 (tunggu flush 2 jam pertama).</td></tr>';
+        $("tableBody").innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--muted);">Belum ada data tercatat di D1 (tunggu flush 3 jam atau klik Force Refresh D1).</td></tr>';
         return;
       }
       $("tableBody").innerHTML = rows
@@ -251,10 +283,14 @@
           (r) => `<tr>
             <td><strong>${r.date}</strong></td>
             <td class="num">${fmt(r.sessions)}</td>
+            <td class="num">${fmt(r.returning_sessions)}</td>
             <td class="num">${fmt(r.games_started)}</td>
             <td class="num">${fmt(r.games_over)}</td>
             <td class="num">${fmt(r.komplit_count)}</td>
             <td class="num">${fmt(r.max_score)}</td>
+            <td class="num">${fmt(r.trakteer_clicks)}</td>
+            <td class="num">${fmt(r.shares)}</td>
+            <td class="num">${fmt(r.pwa_installs)}</td>
             <td class="num">${fmt(r.offline_syncs)}</td>
           </tr>`
         )

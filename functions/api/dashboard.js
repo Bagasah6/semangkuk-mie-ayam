@@ -67,7 +67,8 @@ export async function onRequestGet(context) {
   }
 
   const { results } = await env.DB.prepare(
-    `SELECT date, sessions, games_started, games_over, komplit_count, total_score, max_score, offline_syncs, updated_at
+    `SELECT date, sessions, games_started, games_over, komplit_count, total_score, max_score,
+            offline_syncs, trakteer_clicks, shares, pwa_installs, returning_sessions, updated_at
      FROM daily_stats
      ORDER BY date DESC
      LIMIT ?1`
