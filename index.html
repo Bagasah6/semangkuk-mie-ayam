@@ -102,6 +102,15 @@ button{font:inherit;cursor:pointer;color:inherit}
 .home-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .home-actions .btn{flex-direction:column;gap:6px;font-size:14px;padding:12px 6px;text-align:center;line-height:1.1}
 .home-actions .btn .ic{width:26px;height:26px}
+.slots-wrap{background:rgba(255,250,238,.65);border:3px solid var(--brown);border-radius:16px;padding:10px 12px}
+.slots-toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;user-select:none}
+.slots-toggle::-webkit-details-marker{display:none}
+.slots-toggle .sec-title{margin:0}
+.slots-meta{font-size:13px;font-weight:800;color:var(--muted);display:flex;align-items:center;gap:6px}
+.slots-meta::after{content:"▾";font-size:15px;transition:transform .2s}
+.slots-wrap[open] .slots-meta::after{transform:rotate(180deg)}
+.slots-wrap[open] .slots{margin-top:10px}
+.btn.trakteer{width:100%;background:linear-gradient(180deg,#ff7675,#d63031);color:#fff;text-decoration:none;font-size:17px;padding:13px 16px;text-shadow:0 1px 0 rgba(0,0,0,.25)}
 
 /* meja racik */
 .topbar{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;gap:8px}
@@ -224,14 +233,21 @@ button{font:inherit;cursor:pointer;color:inherit}
   <button class="btn big sec" id="startBtn">Mulai racikan baru</button>
   <p class="full-note" id="fullNote" hidden>Semua slot terisi. Hapus salah satu slot untuk mulai racikan baru.</p>
 
-  <h2 class="sec-title">Simpanan</h2>
-  <div class="slots" id="slots"></div>
+  <details class="slots-wrap" id="slotsWrap">
+    <summary class="slots-toggle">
+      <span class="sec-title">Simpanan</span>
+      <span class="slots-meta" id="slotsMeta">0/3 terisi</span>
+    </summary>
+    <div class="slots" id="slots"></div>
+  </details>
 
   <div class="home-actions">
     <button class="btn sec" data-open="modalKoleksi"><svg class="ic"><use href="#i-grid"/></svg>Koleksi</button>
     <button class="btn sec" data-open="modalKomplit"><svg class="ic"><use href="#i-bowl"/></svg>Semangkuk Komplit<span class="badge komp-badge">0</span></button>
     <button class="btn sec" data-open="modalHelp"><svg class="ic"><use href="#i-help"/></svg>Cara Main</button>
   </div>
+
+  <a class="btn trakteer" href="https://trakteer.id/mbagasah/tip" target="_blank" rel="noopener noreferrer">🍜 Traktir Mie Ayam Komplit</a>
 </main>
 
 <!-- ===== MEJA RACIK ===== -->
@@ -482,7 +498,7 @@ function enterGame(i){
   tiles.filter(t=>t.v===MAX).forEach(t=>komplit(t,$("t"+t.id)));
   if(!canMove())gameOver();
 }
-function goHome(){save();closeModals();show("home");renderHome();}
+function goHome(){save();closeModals();if(pendingUpdate){location.reload();return;}show("home");renderHome();}
 function restart(){
   clearBoard();score=0;best=1;addRandom();addRandom();render();updateGameUI();save();trackEvent({gamesStarted:1});
 }
@@ -513,6 +529,7 @@ function renderHome(){
   $("startBtn").hidden=firstEmpty<0;$("fullNote").hidden=firstEmpty>=0;
   $("startBtn").dataset.slot=firstEmpty;
   $("startBtn").classList.toggle("sec",anyFilled);
+  $("slotsMeta").textContent=`${filled.filter(Boolean).length}/3 terisi`;
   $("slots").innerHTML=store.slots.map((s,i)=>{
     if(confirmSlot===i) return `<div class="slot confirm"><p>Hapus Slot ${i+1}? Progresnya tidak bisa dikembalikan.</p><button class="btn small sec" data-cancel>Batal</button><button class="btn small red" data-del="${i}">Hapus</button></div>`;
     if(!hasGame(s)) return `<div class="slot empty"><span class="no">${i+1}</span><button class="info" data-play="${i}" aria-label="Mulai racikan baru di slot ${i+1}"><div class="score">Kosong</div><div class="when">Ketuk untuk mulai</div></button><span></span></div>`;
@@ -755,7 +772,30 @@ trackEvent({sessions:1});
 window.addEventListener("pagehide",()=>{save();flushAnalytics(false);});
 document.addEventListener("visibilitychange",()=>{if(document.hidden){save();flushAnalytics(false);}});
 window.addEventListener("online",()=>flushAnalytics(true));
-if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("./sw.js").catch(()=>{});});}
+let pendingUpdate=false;
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("./sw.js").then(reg=>{
+      if(reg.waiting) pendingUpdate=true;
+      reg.addEventListener("updatefound",()=>{
+        const nw=reg.installing;
+        if(!nw)return;
+        nw.addEventListener("statechange",()=>{
+          if(nw.state==="installed"&&navigator.serviceWorker.controller){
+            pendingUpdate=true;
+            if(!inGame&&!$("home").hidden){save();location.reload();}
+          }
+        });
+      });
+    }).catch(()=>{});
+    let reloading=false;
+    navigator.serviceWorker.addEventListener("controllerchange",()=>{
+      if(reloading)return;
+      pendingUpdate=true;
+      if(!inGame){reloading=true;save();location.reload();}
+    });
+  });
+}
 })();
 </script>
 </body>

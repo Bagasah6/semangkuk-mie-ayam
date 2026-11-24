@@ -1,5 +1,5 @@
 // Semangkuk Mie Ayam - service worker (offline penuh)
-const VERSION = "mieayam-v5";
+const VERSION = "mieayam-v6";
 const CORE = [
   "./",
   "./index.html",
