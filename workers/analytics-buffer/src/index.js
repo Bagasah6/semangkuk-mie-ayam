@@ -1,7 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 
-// Flush ke D1 setiap 2 jam -> maksimal 12 rows written/hari ke D1
-const FLUSH_INTERVAL_MS = 2 * 60 * 60 * 1000;
+// Flush ke D1 setiap 3 jam -> maksimal 8x/hari (<= 16 rows written/hari)
+const FLUSH_INTERVAL_MS = 3 * 60 * 60 * 1000;
 
 function todayWIB() {
   // Format YYYY-MM-DD zona waktu Asia/Jakarta (WIB)
@@ -66,12 +66,21 @@ export class AnalyticsBuffer extends DurableObject {
     return { buffered: true, date };
   }
 
+  async flushNow() {
+    const flushed = await this.flushToD1();
+    return { flushed };
+  }
+
   async alarm() {
+    await this.flushToD1();
+  }
+
+  async flushToD1() {
     const rows = this.ctx.storage.sql
       .exec("SELECT * FROM pending_daily")
       .toArray();
 
-    if (rows.length === 0) return;
+    if (rows.length === 0) return 0;
 
     const now = new Date().toISOString();
     const stmt = this.env.DB.prepare(`
@@ -105,10 +114,11 @@ export class AnalyticsBuffer extends DurableObject {
     await this.env.DB.batch(batch);
 
     // Hapus buffer lokal hanya setelah D1 batch berhasil
-    const dates = rows.map((r) => r.date);
-    for (const d of dates) {
-      this.ctx.storage.sql.exec("DELETE FROM pending_daily WHERE date = ?1", d);
+    for (const r of rows) {
+      this.ctx.storage.sql.exec("DELETE FROM pending_daily WHERE date = ?1", r.date);
     }
+
+    return rows.length;
   }
 }
 

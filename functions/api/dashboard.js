@@ -48,9 +48,21 @@ export async function onRequestGet(context) {
   if (!forceRefresh) {
     const cached = await cache.match(cacheKey);
     if (cached) {
-      const hitRes = new Response(cached.body, cached);
-      hitRes.headers.set("X-Cache", "HIT");
+      const hitRes = new Response(cached.body, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-store",
+          "X-Cache": "HIT",
+        },
+      });
       return hitRes;
+    }
+  } else if (env.ANALYTICS_BUFFER) {
+    try {
+      await env.ANALYTICS_BUFFER.getByName("global-buffer").flushNow();
+    } catch {
+      // Tetap lanjut baca D1 jika buffer kosong/gagal flush
     }
   }
 
@@ -70,15 +82,24 @@ export async function onRequestGet(context) {
     rows: results,
   };
 
-  const res = new Response(JSON.stringify(payload), {
+  const bodyStr = JSON.stringify(payload);
+
+  // Simpan ke Cloudflare Edge Cache (12 jam), tapi kirim no-store ke browser
+  const cacheRes = new Response(bodyStr, {
     status: 200,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "public, max-age=43200",
-      "X-Cache": "MISS",
     },
   });
+  context.waitUntil(cache.put(cacheKey, cacheRes));
 
-  context.waitUntil(cache.put(cacheKey, res.clone()));
-  return res;
+  return new Response(bodyStr, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store",
+      "X-Cache": forceRefresh ? "REFRESHED" : "MISS",
+    },
+  });
 }

@@ -175,9 +175,13 @@
       const days = $("daysSelect").value;
       const url = `/api/dashboard?days=${days}${force ? "&refresh=1" : ""}`;
       $("authErr").textContent = "";
+      $("refreshBtn").disabled = true;
+      $("forceBtn").disabled = true;
+      $("forceBtn").textContent = force ? "Menyinkronkan..." : "Force Refresh D1";
 
       try {
         const res = await fetch(url, {
+          cache: "no-store",
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -202,6 +206,10 @@
           $("dash").hidden = true;
         }
         $("authErr").textContent = `Gagal memuat: ${err.message}`;
+      } finally {
+        $("refreshBtn").disabled = false;
+        $("forceBtn").disabled = false;
+        $("forceBtn").textContent = "Force Refresh D1";
       }
     }
 
