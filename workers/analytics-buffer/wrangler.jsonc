@@ -1,0 +1,39 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "semangkuk-mie-ayam-buffer",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-24",
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ANALYTICS_BUFFER",
+        "class_name": "AnalyticsBuffer"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["AnalyticsBuffer"]
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "semangkuk-mie-ayam-db",
+      "database_id": "REPLACE_WITH_PRODUCTION_D1_ID"
+    }
+  ],
+  "env": {
+    "staging": {
+      "name": "semangkuk-mie-ayam-buffer-staging",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "semangkuk-mie-ayam-db-staging",
+          "database_id": "REPLACE_WITH_STAGING_D1_ID"
+        }
+      ]
+    }
+  }
+}

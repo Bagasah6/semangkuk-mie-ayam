@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffd23f">
+<meta name="description" content="Game 2048 santai: racik semangkuk mie ayam komplit.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mie Ayam">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Semangkuk Mie Ayam</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800;900&display=swap">
+<style>
+/* Layout: satu kolom sempit gaya game kasual. Dua layar (beranda, meja racik). Warna diambil dari logo: kuning-oranye, cokelat tua, krem hangat. Satu tema terang. */
+:root{
+  --cream:#fff3d6;
+  --cream-2:#fffaee;
+  --yellow:#ffd23f;
+  --orange:#f59e1b;
+  --brown:#5b2611;
+  --brown-2:#8b4317;
+  --red:#e0392b;
+  --blue:#2f6fd0;
+  --green:#3fa535;
+  --muted:#8a6448;
+  --wood:#7b4a2a;
+  --wood-dark:#4e2b16;
+  --wood-light:#a8703f;
+  --font-game:"Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  --font-body:"Nunito", "Segoe UI", system-ui, sans-serif;
+  --gap:10px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{min-height:100%}
+body{
+  margin:0;background:var(--cream);color:var(--brown);font-family:var(--font-body);font-size:15px;line-height:1.45;
+  background-image:
+    radial-gradient(ellipse 90% 40% at 50% -8%, rgba(255,210,63,.45), transparent 70%),
+    radial-gradient(circle at 12% 88%, rgba(245,158,27,.12), transparent 40%);
+  background-attachment:fixed;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:14px 32px;
+  overflow-x:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+img{max-width:100%;-webkit-user-drag:none;user-select:none}
+.screen{max-width:460px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic.fill{fill:currentColor;stroke:none}
+
+/* tombol gaya game */
+button{font:inherit;cursor:pointer;color:inherit}
+.btn{font-family:var(--font-game);font-weight:400;font-size:18px;letter-spacing:.02em;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border:3px solid var(--brown);border-radius:16px;padding:11px 16px;
+  background:linear-gradient(180deg,#ffe58a 0%,var(--yellow) 45%,var(--orange) 100%);
+  color:var(--brown);box-shadow:0 4px 0 var(--brown), inset 0 2px 0 rgba(255,255,255,.55);
+  transition:transform .08s, box-shadow .08s;position:relative}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--brown), inset 0 2px 0 rgba(255,255,255,.55)}
+.btn:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+.btn.sec{background:var(--cream-2)}
+.btn.red{background:linear-gradient(180deg,#ff8a6e,var(--red));color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.25)}
+.btn.big{font-size:24px;padding:15px 18px;width:100%}
+.btn.icon{width:48px;height:48px;padding:0;border-radius:14px;flex:none}
+.btn.small{font-size:15px;padding:8px 12px;border-radius:12px;border-width:2.5px;box-shadow:0 3px 0 var(--brown), inset 0 2px 0 rgba(255,255,255,.55)}
+.badge{position:absolute;top:-9px;right:-9px;min-width:24px;height:24px;padding:0 6px;border-radius:999px;background:var(--red);color:#fff;border:2.5px solid var(--brown);font-family:var(--font-game);font-size:13px;display:grid;place-items:center;font-variant-numeric:tabular-nums}
+.badge.bump{animation:bump .5s ease-out}
+@keyframes bump{0%{transform:scale(1)}35%{transform:scale(1.5)}100%{transform:scale(1)}}
+
+/* beranda */
+.home-top{display:flex;justify-content:flex-end}
+.logo{display:block;width:min(78%,300px);height:auto;margin:-30px auto 0;filter:drop-shadow(0 8px 10px rgba(91,38,17,.25))}
+.best-pill{align-self:center;display:flex;align-items:center;gap:10px;background:var(--brown);color:var(--cream-2);border-radius:999px;padding:8px 18px}
+.best-pill span{font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--yellow)}
+.best-pill b{font-family:var(--font-game);font-weight:400;font-size:22px;font-variant-numeric:tabular-nums}
+.full-note{text-align:center;color:var(--muted);font-weight:700;margin:0;font-size:14px}
+.sec-title{font-family:var(--font-game);font-size:18px;margin:4px 0 -6px;letter-spacing:.02em}
+.slots{display:grid;gap:10px}
+.slot{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;background:var(--cream-2);border:3px solid var(--brown);border-radius:16px;padding:10px 10px 10px 14px;box-shadow:0 4px 0 var(--brown);min-height:66px}
+.slot-main{display:contents}
+.slot .no{font-family:var(--font-game);font-size:15px;width:44px;height:44px;border-radius:12px;background:var(--yellow);border:2.5px solid var(--brown);display:grid;place-items:center;line-height:1;text-align:center}
+.slot .info{min-width:0;text-align:left;background:none;border:0;padding:0}
+.slot .score{font-family:var(--font-game);font-size:20px;line-height:1.1;font-variant-numeric:tabular-nums}
+.slot .when{font-size:13px;color:var(--muted);font-weight:700}
+.slot.empty{border-style:dashed;box-shadow:none;background:rgba(255,250,238,.6)}
+.slot.empty .no{background:var(--cream)}
+.slot.empty .score{font-size:17px;color:var(--muted)}
+.slot .trash{width:42px;height:42px;border-radius:12px;border:2.5px solid var(--brown);background:var(--cream);display:grid;place-items:center;color:var(--brown)}
+.slot .trash:active{transform:translateY(2px)}
+.slot.confirm{grid-template-columns:1fr auto auto;background:#ffe3dc}
+.slot.confirm p{margin:0;font-weight:800;font-size:14px}
+.slot button.info{cursor:pointer}
+.home-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.home-actions .btn{flex-direction:column;gap:6px;font-size:14px;padding:12px 6px;text-align:center;line-height:1.1}
+.home-actions .btn .ic{width:26px;height:26px}
+
+/* meja racik */
+.topbar{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;gap:8px}
+.topbar img{height:62px;width:auto;margin:0 auto;display:block;filter:drop-shadow(0 4px 4px rgba(91,38,17,.2))}
+.scorerow{display:flex;gap:8px;align-items:stretch}
+.sbox{flex:1;background:var(--brown);color:var(--cream-2);border-radius:14px;padding:6px 12px;text-align:center;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+.sbox span{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:900;color:var(--yellow)}
+.sbox b{font-family:var(--font-game);font-weight:400;font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums;display:inline-block}
+.sbox.bump b{animation:bump .3s ease-out}
+.gain{position:absolute;font-family:var(--font-game);color:var(--orange);-webkit-text-stroke:1px var(--brown);font-size:22px;pointer-events:none;animation:gain .8s ease-out forwards;z-index:9}
+@keyframes gain{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-34px)}}
+
+.table{position:relative;padding:12px;border-radius:20px;border:3px solid var(--brown);
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,0) 0 23%, rgba(0,0,0,.25) 23% 23.6%, rgba(0,0,0,0) 23.6% 50%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.04) 0 3px, rgba(0,0,0,.05) 3px 7px),
+    linear-gradient(160deg,var(--wood-light),var(--wood) 45%,var(--wood-dark));
+  box-shadow:0 6px 0 var(--brown), 0 18px 30px -12px rgba(91,38,17,.5), inset 0 1px 0 rgba(255,255,255,.2)}
+.board{position:relative;width:100%;aspect-ratio:1;max-width:100%;touch-action:none;user-select:none;-webkit-user-select:none;outline:none}
+.cell,.tile{position:absolute;width:calc((100% - 5*var(--gap))/4);height:calc((100% - 5*var(--gap))/4);
+  left:calc(var(--gap) + var(--c) * ((100% - 5*var(--gap))/4 + var(--gap)));
+  top:calc(var(--gap) + var(--r) * ((100% - 5*var(--gap))/4 + var(--gap)))}
+.cell{border-radius:14px;background:rgba(30,12,2,.32);box-shadow:inset 0 3px 6px rgba(0,0,0,.35)}
+.tile{border-radius:14px;transition:left .12s ease-out, top .12s ease-out;z-index:2;
+  background:var(--tbg);border:2.5px solid var(--brown);box-shadow:0 3px 0 var(--brown), inset 0 2px 0 rgba(255,255,255,.6);
+  display:grid;place-items:center;overflow:visible}
+.tile img{width:96%;height:96%;object-fit:contain;display:block;pointer-events:none}
+.tile .val{position:absolute;right:3px;bottom:3px;font-family:var(--font-game);font-size:clamp(9px,2.4vw,12px);line-height:1;padding:2px 5px 3px;border-radius:7px;background:var(--brown);color:var(--yellow);font-variant-numeric:tabular-nums}
+.tile.new{animation:appear .18s ease-out}
+.tile.pop{animation:pop .2s ease-out}
+@keyframes appear{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.14)}100%{transform:scale(1)}}
+.tile.dead{z-index:1}
+.tile.komplit{box-shadow:0 3px 0 var(--brown), 0 0 0 3px var(--yellow), 0 0 26px rgba(255,210,63,.95)}
+.tile.served{animation:serve .7s ease-in forwards}
+@keyframes serve{0%{transform:scale(1)}30%{transform:scale(1.1)}100%{transform:translateY(-60px) scale(.5);opacity:0}}
+.steam{position:absolute;left:50%;top:-6%;width:60%;height:70%;transform:translateX(-50%);pointer-events:none}
+.steam i{position:absolute;bottom:0;width:9px;height:36px;border-radius:50%;background:rgba(255,255,255,.9);filter:blur(4px);opacity:0;animation:steam 1.6s ease-out infinite}
+.steam i:nth-child(1){left:20%}
+.steam i:nth-child(2){left:46%;animation-delay:.35s}
+.steam i:nth-child(3){left:72%;animation-delay:.7s}
+@keyframes steam{0%{transform:translateY(0) scaleX(1);opacity:0}25%{opacity:.9}100%{transform:translateY(-70px) translateX(8px) scaleX(2.2);opacity:0}}
+.overlay{position:absolute;inset:0;border-radius:14px;background:rgba(78,43,22,.84);color:var(--cream-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px;z-index:6}
+.overlay h2{font-family:var(--font-game);font-weight:400;margin:0;font-size:28px;color:var(--yellow);-webkit-text-stroke:1px var(--brown)}
+.overlay p{margin:0;max-width:28ch;font-weight:700}
+.bottombar{display:grid;grid-template-columns:1fr 1fr auto;gap:10px}
+.bottombar .btn{font-size:16px;padding:11px 10px}
+.hint{font-size:13px;color:var(--muted);text-align:center;margin:-4px 0 0;font-weight:700}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(58,26,10,.55);z-index:30;display:flex;align-items:center;justify-content:center;
+  padding:calc(16px + env(safe-area-inset-top,0px)) max(16px, env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px, env(safe-area-inset-left,0px))}
+.sheet{background:var(--cream-2);border:3px solid var(--brown);border-radius:22px;box-shadow:0 6px 0 var(--brown);padding:18px;max-width:420px;width:100%;max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sheet h2{font-family:var(--font-game);font-weight:400;font-size:24px;margin:0;letter-spacing:.02em}
+.sheet .note{margin:0;color:var(--muted);font-weight:700;font-size:14px}
+.closebtn{width:40px;height:40px;border-radius:12px;border:2.5px solid var(--brown);background:var(--cream);display:grid;place-items:center;flex:none}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row .btn{flex:1}
+.kol{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kol .k{background:var(--cream);border:2.5px solid var(--brown);border-radius:14px;padding:6px 6px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.kol .k img{width:100%;aspect-ratio:1;object-fit:contain}
+.kol .k b{font-family:var(--font-game);font-weight:400;font-size:13px;color:var(--brown-2)}
+.kol .k span{font-size:11.5px;font-weight:800;line-height:1.2}
+.kol .k.lock{opacity:.55}
+.kol .k.lock img{filter:grayscale(1) brightness(.6) contrast(.8)}
+.kol .k.lock span{color:var(--muted)}
+.komp-count{display:flex;align-items:baseline;gap:10px}
+.komp-count b{font-family:var(--font-game);font-weight:400;font-size:56px;line-height:1;color:var(--orange);-webkit-text-stroke:2px var(--brown);font-variant-numeric:tabular-nums}
+.komp-count span{font-weight:800;color:var(--muted)}
+.tray{border-radius:18px;padding:16px 14px 22px;background:linear-gradient(180deg,#e7ebef,#c3c9d0);border:3px solid #6b7480;box-shadow:inset 0 3px 0 rgba(255,255,255,.75), inset 0 -4px 0 rgba(0,0,0,.12);display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-height:110px}
+.tray img{width:68px;height:68px}
+.tray .more{font-family:var(--font-game);font-size:20px;color:#3e4650;margin-left:6px}
+.tray .empty{margin:0;color:#3e4650;font-weight:800;font-size:14px;max-width:32ch}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.steps li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;background:var(--cream);border:2.5px solid var(--brown);border-radius:14px;padding:10px 12px}
+.steps .vis{display:flex;align-items:center;gap:2px;font-family:var(--font-game);font-size:18px;color:var(--brown-2)}
+.steps .vis img{width:44px;height:44px}
+.steps .vis .ic{width:30px;height:30px}
+.steps b{display:block;font-family:var(--font-game);font-weight:400;font-size:17px}
+.steps span{font-size:13.5px;font-weight:700;color:var(--muted)}
+.card-img{width:100%;height:auto;border-radius:14px;border:3px solid var(--brown);display:block}
+
+.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%) translateY(20px);background:var(--brown);color:var(--cream-2);font-weight:800;padding:10px 18px;border-radius:999px;opacity:0;transition:.3s;z-index:50;max-width:calc(100% - 32px);text-align:center;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion: reduce){
+  .tile,.tile.new,.tile.pop,.steam i,.badge.bump,.gain{animation:none!important;transition:none!important}
+  .tile.served{animation:none;opacity:0}
+}
+</style>
+
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h5v-6h3v6h5V10"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"/><path d="M16 9.5l5 5"/><path d="M21 9.5l-5 5"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.6 2.3c-.7.4-1.2.9-1.2 1.7v.6"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-bowl" viewBox="0 0 24 24"><path d="M3 12h18a9 8 0 0 1-18 0z"/><path d="M8.5 20.5h7"/><path d="M9 8.5c0-1.6 1.6-1.9 1.6-3.5"/><path d="M13.4 8.5c0-1.6 1.6-1.9 1.6-3.5"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l1 13h9l1-13"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1"/><path d="M8.2 13.2l7.6 4.1"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2"/><path d="M15.5 8.5V5.5a1.5 1.5 0 0 0-1.5-1.5H5.5A1.5 1.5 0 0 0 4 5.5V14a1.5 1.5 0 0 0 1.5 1.5h3"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12"/><path d="M18 6 6 18"/></symbol>
+  <symbol id="i-swipe" viewBox="0 0 24 24"><path d="M4 12h16"/><path d="M8 8l-4 4 4 4"/><path d="M16 8l4 4-4 4"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></symbol>
+</svg>
+
+<!-- ===== BERANDA ===== -->
+<main class="screen" id="home">
+  <div class="home-top">
+    <button class="btn icon sec sound-btn" aria-label="Suara: mati" aria-pressed="false"><svg class="ic"><use href="#i-mute"/></svg></button>
+  </div>
+  <img class="logo" src="assets/logo.webp" alt="Semangkuk Mie Ayam" width="720" height="540">
+  <div class="best-pill"><span>Skor terbaik</span><b id="homeBest">0</b></div>
+
+  <button class="btn big" id="continueBtn" hidden><svg class="ic fill"><use href="#i-play"/></svg><span id="continueLbl">Lanjutkan</span></button>
+  <button class="btn big sec" id="startBtn">Mulai racikan baru</button>
+  <p class="full-note" id="fullNote" hidden>Semua slot terisi. Hapus salah satu slot untuk mulai racikan baru.</p>
+
+  <h2 class="sec-title">Simpanan</h2>
+  <div class="slots" id="slots"></div>
+
+  <div class="home-actions">
+    <button class="btn sec" data-open="modalKoleksi"><svg class="ic"><use href="#i-grid"/></svg>Koleksi</button>
+    <button class="btn sec" data-open="modalKomplit"><svg class="ic"><use href="#i-bowl"/></svg>Semangkuk Komplit<span class="badge komp-badge">0</span></button>
+    <button class="btn sec" data-open="modalHelp"><svg class="ic"><use href="#i-help"/></svg>Cara Main</button>
+  </div>
+</main>
+
+<!-- ===== MEJA RACIK ===== -->
+<main class="screen" id="game" hidden>
+  <div class="topbar">
+    <button class="btn icon sec" id="homeBtn" aria-label="Kembali ke beranda"><svg class="ic"><use href="#i-home"/></svg></button>
+    <img src="assets/logo-small.webp" alt="Semangkuk Mie Ayam" width="260" height="195">
+    <button class="btn icon sec sound-btn" aria-label="Suara: mati" aria-pressed="false"><svg class="ic"><use href="#i-mute"/></svg></button>
+  </div>
+  <div class="scorerow">
+    <div class="sbox" id="scoreBox"><span>Skor</span><b id="score">0</b></div>
+    <div class="sbox"><span>Terbaik</span><b id="bestScore">0</b></div>
+  </div>
+  <div class="table">
+    <div class="board" id="board" role="application" tabindex="0" aria-label="Meja racik 4 kali 4. Geser atau pakai tombol panah."></div>
+  </div>
+  <p class="hint">Geser untuk menggabungkan dua mangkuk yang sama</p>
+  <div class="bottombar">
+    <button class="btn sec" data-open="modalKoleksi"><svg class="ic"><use href="#i-grid"/></svg>Koleksi</button>
+    <button class="btn" data-open="modalKomplit"><svg class="ic"><use href="#i-bowl"/></svg>Komplit<span class="badge komp-badge">0</span></button>
+    <button class="btn icon sec" id="restartBtn" aria-label="Racik ulang"><svg class="ic"><use href="#i-refresh"/></svg></button>
+  </div>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ===== MODAL ===== -->
+<div class="modal" id="modalKoleksi" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="hKol">
+    <div class="sheet-head"><h2 id="hKol">Koleksi</h2><button class="closebtn" data-close aria-label="Tutup"><svg class="ic"><use href="#i-x"/></svg></button></div>
+    <p class="note" id="kolNote">Mangkuk yang pernah kamu racik.</p>
+    <div class="kol" id="kol"></div>
+  </div>
+</div>
+
+<div class="modal" id="modalKomplit" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="hKomp">
+    <div class="sheet-head"><h2 id="hKomp">Semangkuk Komplit</h2><button class="closebtn" data-close aria-label="Tutup"><svg class="ic"><use href="#i-x"/></svg></button></div>
+    <div class="komp-count"><b id="kompBig">0</b><span>mangkuk komplit tersaji</span></div>
+    <div class="tray" id="tray"></div>
+    <p class="note">Bertambah satu setiap kali kamu membentuk ubin 2048, dari slot mana pun.</p>
+  </div>
+</div>
+
+<div class="modal" id="modalHelp" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="hHelp">
+    <div class="sheet-head"><h2 id="hHelp">Cara Main</h2><button class="closebtn" data-close aria-label="Tutup"><svg class="ic"><use href="#i-x"/></svg></button></div>
+    <ol class="steps">
+      <li><div class="vis"><svg class="ic"><use href="#i-swipe"/></svg></div><div><b>Geser meja</b><span>Geser ke atas, bawah, kiri, atau kanan. Semua mangkuk ikut bergeser.</span></div></li>
+      <li><div class="vis"><img src="assets/level-1.webp" alt="">+<img src="assets/level-1.webp" alt="">=<img src="assets/level-2.webp" alt=""></div><div><b>Gabungkan yang sama</b><span>Dua mangkuk yang sama jadi satu, dengan satu topping tambahan.</span></div></li>
+      <li><div class="vis"><img src="assets/level-11.webp" alt=""></div><div><b>Racik sampai 2048</b><span>Mangkuk komplit dengan es teh akan disajikan ke Semangkuk Komplit.</span></div></li>
+    </ol>
+    <p class="note">Tidak ada timer. Progres tersimpan otomatis di setiap slot.</p>
+  </div>
+</div>
+
+<div class="modal" id="modalRestart" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="hRes">
+    <h2 id="hRes">Racik ulang?</h2>
+    <p class="note" id="resNote">Mangkuk di slot ini akan dikosongkan dan skornya kembali ke 0. Skor terbaik, koleksi, dan Semangkuk Komplit tetap aman.</p>
+    <div class="row"><button class="btn sec" data-close>Batal</button><button class="btn red" id="confirmRestart">Racik ulang</button></div>
+  </div>
+</div>
+
+<div class="modal" id="modalCard" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="hCard">
+    <div class="sheet-head"><h2 id="hCard">Kartu Racikan</h2><button class="closebtn" data-close aria-label="Tutup"><svg class="ic"><use href="#i-x"/></svg></button></div>
+    <div id="cardHolder"></div>
+    <div class="row">
+      <button class="btn" id="shareBtn"><svg class="ic"><use href="#i-share"/></svg>Bagikan</button>
+      <button class="btn sec" id="copyBtn"><svg class="ic"><use href="#i-copy"/></svg>Salin teks</button>
+    </div>
+    <p class="note" id="shareNote" hidden>Tekan lama gambar kartu (HP) atau klik kanan, lalu simpan untuk dibagikan.</p>
+    <div class="row">
+      <button class="btn sec" id="cardHome"><svg class="ic"><use href="#i-home"/></svg>Beranda</button>
+      <button class="btn sec" id="cardAgain"><svg class="ic"><use href="#i-refresh"/></svg>Racik lagi</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(()=>{
+const LEVELS=[
+  {v:2,name:"Mie Polos",add:"Mie keriting polos"},
+  {v:4,name:"Mie Ayam Kecap",add:"Ayam kecap"},
+  {v:8,name:"Mie Ayam Sawi",add:"Sawi hijau"},
+  {v:16,name:"Mie Ayam Pangsit",add:"Pangsit rebus"},
+  {v:32,name:"Mie Ayam Bakso",add:"2 bakso kecil"},
+  {v:64,name:"Mie Ayam Ceker",add:"Ceker kecap"},
+  {v:128,name:"Mie Ayam Bakso Urat",add:"Bakso urat besar"},
+  {v:256,name:"Mie Ayam Pangsit Goreng",add:"Pangsit goreng"},
+  {v:512,name:"Mie Ayam Tetelan",add:"Tetelan"},
+  {v:1024,name:"Mie Ayam Kerupuk",add:"Kerupuk putih"},
+  {v:2048,name:"Mie Ayam Komplit",add:"Es teh manis"}
+];
+const TBG=["#fff2cf","#ffecbd","#ffe5a8","#ffde93","#ffd67f","#ffcd6b","#ffc35a","#ffb84c","#ffad42","#ffa23a","#ffd23f"];
+const N=4, MAX=11, NSLOT=3;
+const img=v=>`assets/level-${v}.webp`;
+const fmt=n=>n.toLocaleString("id-ID");
+const $=id=>document.getElementById(id);
+// preload
+LEVELS.forEach((_,i)=>{const im=new Image();im.src=img(i+1);});
+
+/* ---------- simpanan ---------- */
+const KEY="mieayam2048:v2", OLDKEY="mieayam2048:v1";
+let store={active:0,slots:[null,null,null],bestScore:0,bestEver:1,rack:0,sound:false};
+const hasGame=s=>!!(s&&Array.isArray(s.tiles)&&s.tiles.length);
+function loadStore(){
+  try{
+    const s=JSON.parse(localStorage.getItem(KEY));
+    if(s&&Array.isArray(s.slots)){store=Object.assign(store,s);store.slots=[0,1,2].map(i=>s.slots[i]||null);return;}
+    const o=JSON.parse(localStorage.getItem(OLDKEY));
+    if(o){store.slots[0]={tiles:o.tiles||[],score:0,best:o.best||1,savedAt:Date.now()};store.bestEver=Math.max(o.bestEver||1,o.best||1);store.rack=o.rack||0;}
+  }catch(e){}
+}
+function writeStore(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
+function save(){
+  if(inGame){
+    store.slots[store.active]={tiles:tiles.filter(t=>!t.dead&&!t.serving).map(t=>({r:t.r,c:t.c,v:t.v})),score,best,savedAt:Date.now()};
+  }
+  store.bestScore=bestScore;store.bestEver=bestEver;store.rack=rack;
+  writeStore();
+}
+
+/* ---------- state permainan ---------- */
+const boardEl=$("board");
+let tiles=[], nextId=1, best=1, bestEver=1, rack=0, score=0, bestScore=0, busy=false, over=false, inGame=false;
+for(let r=0;r<N;r++)for(let c=0;c<N;c++){const d=document.createElement("div");d.className="cell";d.style.setProperty("--r",r);d.style.setProperty("--c",c);boardEl.appendChild(d);}
+
+function empties(){const occ=new Set(tiles.filter(t=>!t.dead).map(t=>t.r*N+t.c));const e=[];for(let i=0;i<N*N;i++)if(!occ.has(i))e.push(i);return e;}
+function addRandom(){const e=empties();if(!e.length)return null;const i=e[Math.floor(Math.random()*e.length)];const t={id:nextId++,r:Math.floor(i/N),c:i%N,v:Math.random()<.9?1:2,isNew:true};tiles.push(t);return t;}
+function tileEl(t){
+  let el=document.getElementById("t"+t.id);
+  if(!el){el=document.createElement("div");el.className="tile";el.id="t"+t.id;boardEl.appendChild(el);if(t.isNew)el.classList.add("new");}
+  return el;
+}
+function paint(el,v){
+  el.style.setProperty("--tbg",TBG[v-1]);
+  el.innerHTML=`<img src="${img(v)}" alt="" draggable="false"><span class="val">${LEVELS[v-1].v}</span>`;
+  el.setAttribute("aria-label",LEVELS[v-1].name);el.dataset.v=v;
+}
+function render(){
+  tiles.forEach(t=>{
+    const el=tileEl(t);
+    el.style.setProperty("--r",t.r);el.style.setProperty("--c",t.c);
+    if(t.dead){el.classList.add("dead");return;}
+    if(!el.dataset.v) paint(el,t.v);
+    t.isNew=false;
+  });
+}
+
+function move(dir){
+  if(busy||over||!inGame) return;
+  const vec={L:[0,-1],R:[0,1],U:[-1,0],D:[1,0]}[dir];
+  const grid=Array.from({length:N},()=>Array(N).fill(null));
+  tiles.forEach(t=>{if(!t.dead&&!t.serving)grid[t.r][t.c]=t;});
+  tiles.filter(t=>t.serving).forEach(t=>grid[t.r][t.c]={wall:true});
+  const rows=[0,1,2,3], cols=[0,1,2,3];
+  if(vec[0]===1)rows.reverse(); if(vec[1]===1)cols.reverse();
+  const merged=new Set(), pops=[]; let moved=false, gained=0;
+  for(const r of rows)for(const c of cols){
+    const t=grid[r][c]; if(!t||t.wall) continue;
+    let nr=r,nc=c,done=false;
+    while(true){
+      const tr=nr+vec[0], tc=nc+vec[1];
+      if(tr<0||tr>=N||tc<0||tc>=N) break;
+      const o=grid[tr][tc];
+      if(!o){nr=tr;nc=tc;continue;}
+      if(!o.wall&&o.v===t.v&&o.v<MAX&&!merged.has(o.id)){
+        grid[r][c]=null;t.r=tr;t.c=tc;t.dead=true;
+        o.v+=1;gained+=LEVELS[o.v-1].v;merged.add(o.id);pops.push(o);moved=true;done=true;
+      }
+      break;
+    }
+    if(!done&&(nr!==r||nc!==c)){grid[r][c]=null;grid[nr][nc]=t;t.r=nr;t.c=nc;moved=true;}
+  }
+  if(!moved){nudge();return;}
+  busy=true;
+  if(gained){score+=gained;if(score>bestScore)bestScore=score;showGain(gained);}
+  render();
+  tok(pops.length?620:880,pops.length?1:0);
+  setTimeout(()=>{
+    tiles.filter(t=>t.dead).forEach(t=>$("t"+t.id)?.remove());
+    tiles=tiles.filter(t=>!t.dead);
+    pops.forEach(t=>{
+      const el=$("t"+t.id); if(!el) return;
+      paint(el,t.v);el.classList.remove("pop","new");void el.offsetWidth;el.classList.add("pop");
+      if(t.v>best)best=t.v;
+      if(t.v>bestEver){bestEver=t.v;if(t.v>=3)toast(`Koleksi baru: ${LEVELS[t.v-1].name}`);}
+      if(t.v===MAX)komplit(t,el);
+    });
+    addRandom();render();updateGameUI();save();
+    busy=false;
+    if(!canMove())gameOver();
+  },125);
+}
+function canMove(){
+  if(empties().length) return true;
+  const g=Array.from({length:N},()=>Array(N).fill(0));
+  tiles.forEach(t=>{if(!t.dead)g[t.r][t.c]=t.serving?-1:t.v;});
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){const v=g[r][c];if(v<=0||v>=MAX)continue;
+    if(c<N-1&&g[r][c+1]===v)return true;if(r<N-1&&g[r+1][c]===v)return true;}
+  return tiles.some(t=>t.serving);
+}
+function nudge(){boardEl.animate?.([{transform:"translateX(0)"},{transform:"translateX(-4px)"},{transform:"translateX(3px)"},{transform:"translateX(0)"}],{duration:180});}
+function showGain(n){
+  const sb=$("scoreBox");sb.classList.remove("bump");void sb.offsetWidth;sb.classList.add("bump");
+  const g=document.createElement("span");g.className="gain";g.textContent="+"+n;
+  const r=sb.getBoundingClientRect();g.style.left=(r.left+r.width/2-16+scrollX)+"px";g.style.top=(r.top-6+scrollY)+"px";
+  document.body.appendChild(g);setTimeout(()=>g.remove(),820);
+}
+
+/* 2048: uap, lalu disajikan */
+function komplit(t,el){
+  if(!el) return;
+  t.serving=true;el.classList.add("komplit");
+  const st=document.createElement("div");st.className="steam";st.innerHTML="<i></i><i></i><i></i>";el.appendChild(st);
+  chime();toast("Semangkuk komplit! Disajikan sebentar lagi");
+  setTimeout(()=>{
+    el.classList.add("served");
+    setTimeout(()=>{
+      el.remove();tiles=tiles.filter(x=>x.id!==t.id);
+      rack++;updateBadges(true);save();trackEvent({komplit:1});
+      if(over&&canMove()){over=false;boardEl.querySelector(".overlay")?.remove();}
+    },700);
+  },1800);
+}
+
+/* ---------- layar ---------- */
+function show(screen){
+  $("home").hidden=screen!=="home";$("game").hidden=screen!=="game";
+  inGame=screen==="game";
+  window.scrollTo(0,0);
+  if(inGame)boardEl.focus({preventScroll:true});
+}
+function clearBoard(){
+  boardEl.querySelectorAll(".tile,.overlay").forEach(el=>el.remove());
+  tiles=[];over=false;busy=false;
+}
+function enterGame(i){
+  store.active=i;show("game");clearBoard();
+  const s=store.slots[i];
+  if(hasGame(s)){
+    s.tiles.forEach(t=>{if(t.v>=1&&t.v<=MAX)tiles.push({id:nextId++,r:t.r,c:t.c,v:t.v});});
+    score=s.score||0;best=s.best||1;
+  }else{score=0;best=1;addRandom();addRandom();trackEvent({gamesStarted:1});}
+  render();updateGameUI();save();
+  tiles.filter(t=>t.v===MAX).forEach(t=>komplit(t,$("t"+t.id)));
+  if(!canMove())gameOver();
+}
+function goHome(){save();closeModals();show("home");renderHome();}
+function restart(){
+  clearBoard();score=0;best=1;addRandom();addRandom();render();updateGameUI();save();trackEvent({gamesStarted:1});
+}
+
+function rel(ts){
+  if(!ts) return "";
+  const s=Math.max(0,(Date.now()-ts)/1000);
+  if(s<60) return "Baru saja";
+  if(s<3600) return `${Math.floor(s/60)} menit lalu`;
+  if(s<86400) return `${Math.floor(s/3600)} jam lalu`;
+  const d=Math.floor(s/86400);
+  if(d===1) return "Kemarin";
+  if(d<30) return `${d} hari lalu`;
+  return `${Math.floor(d/30)} bulan lalu`;
+}
+let confirmSlot=-1;
+function renderHome(){
+  $("homeBest").textContent=fmt(bestScore);
+  const filled=store.slots.map(hasGame);
+  const anyFilled=filled.some(Boolean), firstEmpty=filled.indexOf(false);
+  let cont=-1;
+  if(anyFilled){
+    if(filled[store.active]) cont=store.active;
+    else cont=store.slots.reduce((b,s,i)=>hasGame(s)&&(b<0||(s.savedAt||0)>(store.slots[b].savedAt||0))?i:b,-1);
+  }
+  $("continueBtn").hidden=cont<0;
+  if(cont>=0){$("continueLbl").textContent=`Lanjutkan · Slot ${cont+1}`;$("continueBtn").dataset.slot=cont;}
+  $("startBtn").hidden=firstEmpty<0;$("fullNote").hidden=firstEmpty>=0;
+  $("startBtn").dataset.slot=firstEmpty;
+  $("startBtn").classList.toggle("sec",anyFilled);
+  $("slots").innerHTML=store.slots.map((s,i)=>{
+    if(confirmSlot===i) return `<div class="slot confirm"><p>Hapus Slot ${i+1}? Progresnya tidak bisa dikembalikan.</p><button class="btn small sec" data-cancel>Batal</button><button class="btn small red" data-del="${i}">Hapus</button></div>`;
+    if(!hasGame(s)) return `<div class="slot empty"><span class="no">${i+1}</span><button class="info" data-play="${i}" aria-label="Mulai racikan baru di slot ${i+1}"><div class="score">Kosong</div><div class="when">Ketuk untuk mulai</div></button><span></span></div>`;
+    return `<div class="slot"><span class="no">${i+1}</span><button class="info" data-play="${i}" aria-label="Lanjutkan slot ${i+1}"><div class="score">${fmt(s.score||0)} poin</div><div class="when">${rel(s.savedAt)}</div></button><button class="trash" data-ask="${i}" aria-label="Hapus slot ${i+1}"><svg class="ic"><use href="#i-trash"/></svg></button></div>`;
+  }).join("");
+  updateBadges();
+}
+$("slots").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.play!==undefined){confirmSlot=-1;enterGame(+b.dataset.play);}
+  else if(b.dataset.ask!==undefined){confirmSlot=+b.dataset.ask;renderHome();}
+  else if(b.dataset.cancel!==undefined){confirmSlot=-1;renderHome();}
+  else if(b.dataset.del!==undefined){const i=+b.dataset.del;store.slots[i]=null;confirmSlot=-1;writeStore();renderHome();toast(`Slot ${i+1} dihapus`);}
+});
+$("continueBtn").onclick=e=>enterGame(+e.currentTarget.dataset.slot);
+$("startBtn").onclick=e=>{const i=+e.currentTarget.dataset.slot;if(i>=0){store.slots[i]=null;enterGame(i);}};
+$("homeBtn").onclick=goHome;
+
+function updateGameUI(){
+  $("score").textContent=fmt(score);
+  $("bestScore").textContent=fmt(bestScore);
+  updateBadges();
+}
+let lastRack=-1;
+function updateBadges(bump){
+  document.querySelectorAll(".komp-badge").forEach(b=>{b.textContent=rack;if(bump&&rack!==lastRack){b.classList.remove("bump");void b.offsetWidth;b.classList.add("bump");}});
+  lastRack=rack;
+}
+
+/* ---------- modal ---------- */
+function openModal(id){
+  if(id==="modalKoleksi")renderKoleksi();
+  if(id==="modalKomplit")renderKomplit();
+  $(id).hidden=false;
+  $(id).querySelector("[data-close],button")?.focus();
+}
+function closeModals(){document.querySelectorAll(".modal").forEach(m=>m.hidden=true);if(inGame)boardEl.focus({preventScroll:true});}
+document.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",()=>openModal(b.dataset.open)));
+document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m||e.target.closest("[data-close]"))closeModals();}));
+function renderKoleksi(){
+  $("kolNote").textContent=`${bestEver} dari ${MAX} mangkuk sudah pernah kamu racik.`;
+  $("kol").innerHTML=LEVELS.map((L,i)=>{const got=i+1<=bestEver;
+    return `<div class="k${got?"":" lock"}"><img src="${img(i+1)}" alt="${got?L.name:"Belum terbuka"}"><b>${L.v}</b><span>${got?L.name:"Belum terbuka"}</span></div>`;}).join("");
+}
+function renderKomplit(){
+  $("kompBig").textContent=fmt(rack);
+  const tray=$("tray");
+  if(!rack){tray.innerHTML='<p class="empty">Nampan masih kosong. Racik sampai ubin 2048, dan mangkuk komplit pertamamu disajikan di sini.</p>';return;}
+  const n=Math.min(rack,12);
+  tray.innerHTML=Array.from({length:n},()=>`<img src="${img(MAX)}" alt="">`).join("")+(rack>n?`<span class="more">+${fmt(rack-n)}</span>`:"");
+}
+$("restartBtn").onclick=()=>{$("resNote").textContent=`Mangkuk di Slot ${store.active+1} akan dikosongkan dan skornya kembali ke 0. Skor terbaik, koleksi, dan Semangkuk Komplit tetap aman.`;openModal("modalRestart");};
+$("confirmRestart").onclick=()=>{closeModals();restart();toast("Meja sudah bersih, racik lagi");};
+
+let toastT;
+function toast(msg){const el=$("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("show"),2400);}
+
+function gameOver(){
+  over=true;trackEvent({gamesOver:1,totalScore:score,maxScore:score});
+  const o=document.createElement("div");o.className="overlay";
+  o.innerHTML=`<h2>Meja penuh!</h2><p>Skor ${fmt(score)} · ${LEVELS[best-1].name}</p><div class="row"><button class="btn" data-a="card">Lihat kartu</button></div>`;
+  o.addEventListener("click",e=>{if(e.target.closest("[data-a]"))openCard();});
+  boardEl.appendChild(o);
+  setTimeout(()=>{if(over&&inGame)openCard();},800);
+}
+
+/* ---------- input ---------- */
+document.addEventListener("keydown",e=>{
+  if([...document.querySelectorAll(".modal")].some(m=>!m.hidden)){if(e.key==="Escape")closeModals();return;}
+  if(!inGame)return;
+  const m={ArrowLeft:"L",ArrowRight:"R",ArrowUp:"U",ArrowDown:"D",a:"L",d:"R",w:"U",s:"D",A:"L",D:"R",W:"U",S:"D"}[e.key];
+  if(m){e.preventDefault();move(m);}
+});
+let sx=0,sy=0,touching=false;
+boardEl.addEventListener("pointerdown",e=>{sx=e.clientX;sy=e.clientY;touching=true;});
+boardEl.addEventListener("pointerup",e=>{
+  if(!touching)return;touching=false;
+  const dx=e.clientX-sx, dy=e.clientY-sy;
+  if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;
+  move(Math.abs(dx)>Math.abs(dy)?(dx>0?"R":"L"):(dy>0?"D":"U"));
+});
+boardEl.addEventListener("pointercancel",()=>touching=false);
+
+/* ---------- audio: hujan (loop) dan kentongan ---------- */
+let actx=null,master=null,rainGain=null,rainSrc=null,soundOn=false,bufs={},audioReady=null;
+const SND={rain:"assets/rain-loop.mp3",tok1:"assets/tok1.wav",tok2:"assets/tok2.wav",tok3:"assets/tok3.wav"};
+const VOL={rain:.32,tok:.95};
+function initAudio(){
+  actx=new (window.AudioContext||window.webkitAudioContext)();
+  master=actx.createGain();master.gain.value=1;master.connect(actx.destination);
+  rainGain=actx.createGain();rainGain.gain.value=0;rainGain.connect(master);
+  audioReady=Promise.all(Object.entries(SND).map(([k,u])=>fetch(u).then(r=>r.arrayBuffer()).then(ab=>new Promise((res,rej)=>actx.decodeAudioData(ab,res,rej))).then(b=>{bufs[k]=b;}).catch(()=>{})))
+    .then(()=>{if(bufs.rain)startRain();});
+}
+function startRain(){
+  if(rainSrc)return;
+  rainSrc=actx.createBufferSource();rainSrc.buffer=bufs.rain;rainSrc.loop=true;
+  // file berisi 0,5 dtk ekstra di awal & akhir; loop diambil tepat satu putaran 30 dtk agar mulus
+  rainSrc.loopStart=.5;rainSrc.loopEnd=Math.min(bufs.rain.duration-.01,30.5);
+  rainSrc.connect(rainGain);rainSrc.start(0,.5);
+  if(soundOn){const t=actx.currentTime;rainGain.gain.cancelScheduledValues(t);rainGain.gain.setTargetAtTime(VOL.rain,t,.8);}
+}
+function play(name,vol,rate=1,delay=0){
+  if(!soundOn||!actx||!bufs[name])return;
+  const s=actx.createBufferSource(),g=actx.createGain();s.buffer=bufs[name];s.playbackRate.value=rate;g.gain.value=vol;
+  s.connect(g);g.connect(master);s.start(actx.currentTime+delay);
+}
+function tok(freq,merge){
+  const pick=["tok1","tok2","tok3"][Math.floor(Math.random()*3)];
+  play(pick,VOL.tok,0.94+Math.random()*.14);
+}
+function chime(){
+  if(!soundOn||!actx)return;
+  const t=actx.currentTime;
+  [659,784,988,1319].forEach((fr,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.type="triangle";o.frequency.value=fr;
+    g.gain.setValueAtTime(0,t+i*.12);g.gain.linearRampToValueAtTime(.12,t+i*.12+.02);g.gain.exponentialRampToValueAtTime(.0005,t+i*.12+1.2);
+    o.connect(g);g.connect(master);o.start(t+i*.12);o.stop(t+i*.12+1.3);});
+}
+function setSound(on){
+  soundOn=on;store.sound=on;writeStore();
+  document.querySelectorAll(".sound-btn").forEach(b=>{b.setAttribute("aria-pressed",on);b.setAttribute("aria-label",on?"Suara: nyala":"Suara: mati");b.innerHTML=`<svg class="ic"><use href="#i-${on?"vol":"mute"}"/></svg>`;});
+  if(!actx)return;
+  const t=actx.currentTime;rainGain.gain.cancelScheduledValues(t);rainGain.gain.setTargetAtTime(on?VOL.rain:0,t,on?.8:.3);
+}
+document.querySelectorAll(".sound-btn").forEach(b=>b.addEventListener("click",()=>{
+  try{if(!actx)initAudio();actx.resume?.();setSound(!soundOn);if(soundOn)audioReady.then(()=>tok(0,0));}
+  catch(err){toast("Suara tidak bisa diputar di perangkat ini");}
+}));
+
+/* ---------- kartu racikan ---------- */
+let cardBlob=null,cardText="";
+const loadImg=src=>new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=src;});
+function wrapText(ctx,text,x,y,maxW,lh){const words=text.split(" ");let line="";const lines=[];for(const w of words){const t=line?line+" "+w:w;if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=w;}else line=t;}if(line)lines.push(line);lines.forEach((l,i)=>ctx.fillText(l,x,y+i*lh));return y+lines.length*lh;}
+async function openCard(){
+  const L=LEVELS[best-1];
+  const tanggal=new Date().toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+  cardText=`🍜 Kartu Racikan Semangkuk Mie Ayam\nMangkuk terbaik: ${L.name} (${L.v})\nSkor: ${fmt(score)} · Skor terbaik: ${fmt(bestScore)}\nSemangkuk Komplit: ${fmt(rack)} mangkuk\nDiracik sambil rebahan · ${tanggal}`;
+  $("shareNote").hidden=true;
+  $("cardHolder").innerHTML='<p class="note">Menyiapkan kartu…</p>';
+  openModal("modalCard");
+  try{await document.fonts?.load?.('60px "Lilita One"');}catch(e){}
+  const [logo,bowl]=await Promise.all([loadImg("assets/logo.webp"),loadImg(img(best))]);
+  const W=1080,H=1350,cv=document.createElement("canvas");cv.width=W;cv.height=H;const ctx=cv.getContext("2d");
+  ctx.fillStyle="#fff3d6";ctx.fillRect(0,0,W,H);
+  let g=ctx.createRadialGradient(W/2,0,40,W/2,0,900);g.addColorStop(0,"rgba(255,210,63,.65)");g.addColorStop(1,"rgba(255,210,63,0)");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="rgba(245,158,27,.10)";for(let i=0;i<18;i++){ctx.beginPath();ctx.arc(80+((i*197)%920),420+((i*311)%560),10+((i*7)%14),0,7);ctx.fill();}
+  const wg=ctx.createLinearGradient(0,980,0,H);wg.addColorStop(0,"#a8703f");wg.addColorStop(1,"#4e2b16");ctx.fillStyle=wg;ctx.fillRect(0,980,W,H-980);
+  ctx.fillStyle="rgba(0,0,0,.2)";for(let x=270;x<W;x+=270)ctx.fillRect(x,980,5,H-980);
+  ctx.strokeStyle="#5b2611";ctx.lineWidth=18;ctx.strokeRect(9,9,W-18,H-18);
+  if(logo){const lw=460,lh=lw*logo.height/logo.width;ctx.drawImage(logo,W/2-lw/2,40,lw,lh);}
+  ctx.textAlign="center";
+  ctx.font='400 40px "Lilita One", sans-serif';ctx.fillStyle="#8b4317";ctx.fillText("KARTU RACIKAN",W/2,440);
+  if(bowl){ctx.save();ctx.shadowColor="rgba(91,38,17,.35)";ctx.shadowBlur=40;ctx.shadowOffsetY=18;ctx.drawImage(bowl,W/2-300,450,600,600);ctx.restore();}
+  ctx.font='400 64px "Lilita One", sans-serif';ctx.lineJoin="round";ctx.lineWidth=12;ctx.strokeStyle="#5b2611";ctx.fillStyle="#ffd23f";
+  ctx.strokeText(L.name,W/2,1110);ctx.fillText(L.name,W/2,1110);
+  ctx.font='400 46px "Lilita One", sans-serif';ctx.fillStyle="#fff3d6";
+  ctx.fillText(`Skor ${fmt(score)}   ·   Terbaik ${fmt(bestScore)}`,W/2,1190);
+  ctx.font='800 30px Nunito, sans-serif';ctx.fillStyle="rgba(255,243,214,.85)";
+  ctx.fillText(`${fmt(rack)} Semangkuk Komplit · Diracik sambil rebahan · ${tanggal}`,W/2,1262);
+  const holder=$("cardHolder");holder.innerHTML="";
+  try{
+    const url=cv.toDataURL("image/png");const im=document.createElement("img");im.className="card-img";im.alt=`Kartu racikan: ${L.name}, skor ${fmt(score)}`;im.src=url;holder.appendChild(im);
+    cardBlob=await new Promise(r=>cv.toBlob(r,"image/png"));
+  }catch(e){cv.className="card-img";holder.appendChild(cv);cardBlob=null;}
+}
+$("shareBtn").onclick=async()=>{
+  try{
+    const file=cardBlob&&new File([cardBlob],"kartu-racikan-mie-ayam.png",{type:"image/png"});
+    if(file&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text:cardText});return;}
+    if(navigator.share){await navigator.share({text:cardText});return;}
+    throw new Error("no-share");
+  }catch(e){
+    if(e&&e.name==="AbortError")return;
+    $("shareNote").hidden=false;toast("Simpan gambar kartunya untuk dibagikan");
+  }
+};
+$("copyBtn").onclick=()=>{
+  try{navigator.clipboard.writeText(cardText).then(()=>toast("Teks kartu tersalin"),()=>toast("Tidak bisa menyalin di perangkat ini"));}
+  catch(e){toast("Tidak bisa menyalin di perangkat ini");}
+};
+$("cardHome").onclick=goHome;
+$("cardAgain").onclick=()=>{closeModals();if(inGame)restart();};
+
+/* ---------- mulai ---------- */
+function start(){
+  loadStore();
+  bestScore=store.bestScore||0;bestEver=Math.max(1,store.bestEver||1);rack=store.rack||0;lastRack=rack;
+  if(!(store.active>=0&&store.active<NSLOT))store.active=0;
+  store.sound=false;
+  show("home");renderHome();
+  setInterval(()=>{if(!inGame&&!$("home").hidden)renderHome();},60000);
+}
+/* ---------- analytics hemat (batching + offline queue) ---------- */
+const AKEY="mieayam_analytics_v1";
+function todayWIB(){
+  try{return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());}
+  catch{return new Date().toISOString().slice(0,10);}
+}
+function readAnalytics(){
+  try{const d=JSON.parse(localStorage.getItem(AKEY));if(d&&d.date)return d;}catch{}
+  return {date:todayWIB(),sessions:0,gamesStarted:0,gamesOver:0,komplit:0,totalScore:0,maxScore:0,offlineSyncs:0,wasOffline:false};
+}
+function writeAnalytics(d){try{localStorage.setItem(AKEY,JSON.stringify(d));}catch{}}
+function trackEvent(delta){
+  const curDate=todayWIB();
+  let d=readAnalytics();
+  if(d.date!==curDate){flushAnalytics(true);d={date:curDate,sessions:0,gamesStarted:0,gamesOver:0,komplit:0,totalScore:0,maxScore:0,offlineSyncs:0,wasOffline:false};}
+  d.sessions+=(delta.sessions||0);
+  d.gamesStarted+=(delta.gamesStarted||0);
+  d.gamesOver+=(delta.gamesOver||0);
+  d.komplit+=(delta.komplit||0);
+  d.totalScore+=(delta.totalScore||0);
+  d.maxScore=Math.max(d.maxScore||0,delta.maxScore||0);
+  if(!navigator.onLine)d.wasOffline=true;
+  writeAnalytics(d);
+}
+function flushAnalytics(useFetch=false){
+  if(!navigator.onLine)return;
+  const d=readAnalytics();
+  const total=d.sessions+d.gamesStarted+d.gamesOver+d.komplit+d.totalScore;
+  if(total<=0)return;
+  const payload={date:d.date,sessions:d.sessions,gamesStarted:d.gamesStarted,gamesOver:d.gamesOver,komplit:d.komplit,totalScore:d.totalScore,maxScore:d.maxScore,offlineSyncs:d.wasOffline?1:0};
+  const body=JSON.stringify(payload);
+  writeAnalytics({date:todayWIB(),sessions:0,gamesStarted:0,gamesOver:0,komplit:0,totalScore:0,maxScore:0,offlineSyncs:0,wasOffline:false});
+  if(!useFetch&&navigator.sendBeacon){
+    const ok=navigator.sendBeacon("/api/analytics",new Blob([body],{type:"application/json"}));
+    if(ok)return;
+  }
+  fetch("/api/analytics",{method:"POST",headers:{"Content-Type":"application/json"},body,keepalive:true}).catch(()=>{
+    const cur=readAnalytics();
+    cur.sessions+=payload.sessions;cur.gamesStarted+=payload.gamesStarted;cur.gamesOver+=payload.gamesOver;
+    cur.komplit+=payload.komplit;cur.totalScore+=payload.totalScore;cur.maxScore=Math.max(cur.maxScore,payload.maxScore);
+    cur.wasOffline=true;writeAnalytics(cur);
+  });
+}
+
+window.claude?.hot?.snapshot?.(()=>{save();return {};});
+window.claude?.hot?.ready?window.claude.hot.ready(()=>start()):start();
+trackEvent({sessions:1});
+window.addEventListener("pagehide",()=>{save();flushAnalytics(false);});
+document.addEventListener("visibilitychange",()=>{if(document.hidden){save();flushAnalytics(false);}});
+window.addEventListener("online",()=>flushAnalytics(true));
+if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("./sw.js").catch(()=>{});});}
+})();
+</script>
+</body>
+</html>

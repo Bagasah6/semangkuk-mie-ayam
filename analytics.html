@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Analytics Pribadi · Semangkuk Mie Ayam</title>
+  <style>
+    :root {
+      --bg: #fff3d6;
+      --card: #fffaf0;
+      --brown: #5b2611;
+      --muted: #8a5a3c;
+      --yellow: #ffd23f;
+      --border: #e7cfa8;
+      --green: #2e7d32;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--brown);
+      padding: 20px 16px 48px;
+    }
+    .wrap { max-width: 880px; margin: 0 auto; }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    h1 { margin: 0; font-size: 1.4rem; }
+    .sub { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+    .auth-box, .panel {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    input[type="password"], select {
+      padding: 10px 12px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      background: #fff;
+      color: var(--brown);
+    }
+    button {
+      padding: 10px 16px;
+      border: 2px solid var(--brown);
+      border-radius: 10px;
+      background: var(--yellow);
+      color: var(--brown);
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.sec { background: #fff; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .stat .label { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+    .stat .val { font-size: 1.5rem; font-weight: 800; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: #eee;
+    }
+    .badge.hit { background: #dff5e1; color: var(--green); }
+    .badge.miss { background: #fff0c2; color: var(--brown); }
+    .err { color: #b71c1c; font-size: 0.9rem; margin-top: 8px; }
+    .note { font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
+    .table-wrap { overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Analytics · Semangkuk Mie Ayam</h1>
+        <div class="sub">D1 Ultra-Hemat (Buffer DO flush 2 jam · Cache Edge 12 jam · ≤ 20 R/W per hari)</div>
+      </div>
+      <div class="row">
+        <a href="./" style="color:var(--brown);font-weight:700;text-decoration:none;">← Kembali ke Game</a>
+      </div>
+    </header>
+
+    <div class="auth-box" id="authBox">
+      <div class="row">
+        <input type="password" id="tokenInput" placeholder="Masukkan DASHBOARD_SECRET..." style="flex:1;min-width:220px;" />
+        <button id="loginBtn">Buka Dashboard</button>
+      </div>
+      <div class="note">Token disimpan di <code>sessionStorage</code> browser ini saja.</div>
+      <div class="err" id="authErr"></div>
+    </div>
+
+    <div id="dash" hidden>
+      <div class="panel">
+        <div class="row" style="justify-content:space-between;">
+          <div class="row">
+            <label for="daysSelect">Rentang:</label>
+            <select id="daysSelect">
+              <option value="7" selected>7 Hari Terakhir (≤ 7 rows read)</option>
+              <option value="14">14 Hari Terakhir (≤ 14 rows read)</option>
+            </select>
+            <button id="refreshBtn" class="sec">Muat Ulang (Cache)</button>
+            <button id="forceBtn" title="Bypass cache dan baca langsung dari D1">Force Refresh D1</button>
+          </div>
+          <div class="row">
+            <span id="cacheBadge" class="badge">-</span>
+            <button id="logoutBtn" class="sec">Keluar</button>
+          </div>
+        </div>
+        <div class="note" id="metaNote"></div>
+      </div>
+
+      <div class="grid" id="summaryGrid"></div>
+
+      <div class="panel">
+        <h2 style="margin:0 0 12px;font-size:1.05rem;">Rekap Harian</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tanggal (WIB)</th>
+                <th class="num">Sesi</th>
+                <th class="num">Mulai</th>
+                <th class="num">Game Over</th>
+                <th class="num">Komplit</th>
+                <th class="num">Skor Tertinggi</th>
+                <th class="num">Offline Sync</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TOKEN_KEY = "mieayam_dash_token";
+    const $ = (id) => document.getElementById(id);
+    const fmt = (n) => Number(n || 0).toLocaleString("id-ID");
+
+    function getToken() {
+      return sessionStorage.getItem(TOKEN_KEY) || "";
+    }
+
+    async function loadDashboard(force = false) {
+      const token = getToken();
+      if (!token) return;
+
+      const days = $("daysSelect").value;
+      const url = `/api/dashboard?days=${days}${force ? "&refresh=1" : ""}`;
+      $("authErr").textContent = "";
+
+      try {
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+
+        $("authBox").hidden = true;
+        $("dash").hidden = false;
+
+        const cacheStatus = res.headers.get("X-Cache") || "-";
+        $("cacheBadge").textContent = `Edge Cache: ${cacheStatus}`;
+        $("cacheBadge").className = `badge ${cacheStatus === "HIT" ? "hit" : "miss"}`;
+        $("metaNote").textContent = `Terakhir diambil dari D1: ${new Date(data.fetchedAt).toLocaleString("id-ID")} · Rows terbaca: ${data.rowsRead}`;
+
+        renderSummary(data.rows);
+        renderTable(data.rows);
+      } catch (err) {
+        if (err.message === "Unauthorized") {
+          sessionStorage.removeItem(TOKEN_KEY);
+          $("authBox").hidden = false;
+          $("dash").hidden = true;
+        }
+        $("authErr").textContent = `Gagal memuat: ${err.message}`;
+      }
+    }
+
+    function renderSummary(rows) {
+      const tot = rows.reduce(
+        (acc, r) => {
+          acc.sessions += r.sessions || 0;
+          acc.started += r.games_started || 0;
+          acc.over += r.games_over || 0;
+          acc.komplit += r.komplit_count || 0;
+          acc.offline += r.offline_syncs || 0;
+          acc.maxScore = Math.max(acc.maxScore, r.max_score || 0);
+          return acc;
+        },
+        { sessions: 0, started: 0, over: 0, komplit: 0, offline: 0, maxScore: 0 }
+      );
+
+      const cards = [
+        ["Total Sesi", fmt(tot.sessions)],
+        ["Game Dimulai", fmt(tot.started)],
+        ["Game Over", fmt(tot.over)],
+        ["Semangkuk Komplit", fmt(tot.komplit)],
+        ["Skor Tertinggi", fmt(tot.maxScore)],
+        ["Offline Syncs", fmt(tot.offline)],
+      ];
+
+      $("summaryGrid").innerHTML = cards
+        .map(([l, v]) => `<div class="stat"><div class="label">${l}</div><div class="val">${v}</div></div>`)
+        .join("");
+    }
+
+    function renderTable(rows) {
+      if (!rows.length) {
+        $("tableBody").innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);">Belum ada data tercatat di D1 (tunggu flush 2 jam pertama).</td></tr>';
+        return;
+      }
+      $("tableBody").innerHTML = rows
+        .map(
+          (r) => `<tr>
+            <td><strong>${r.date}</strong></td>
+            <td class="num">${fmt(r.sessions)}</td>
+            <td class="num">${fmt(r.games_started)}</td>
+            <td class="num">${fmt(r.games_over)}</td>
+            <td class="num">${fmt(r.komplit_count)}</td>
+            <td class="num">${fmt(r.max_score)}</td>
+            <td class="num">${fmt(r.offline_syncs)}</td>
+          </tr>`
+        )
+        .join("");
+    }
+
+    $("loginBtn").onclick = () => {
+      const val = $("tokenInput").value.trim();
+      if (!val) return;
+      sessionStorage.setItem(TOKEN_KEY, val);
+      loadDashboard(false);
+    };
+    $("tokenInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") $("loginBtn").click();
+    });
+    $("daysSelect").onchange = () => loadDashboard(false);
+    $("refreshBtn").onclick = () => loadDashboard(false);
+    $("forceBtn").onclick = () => loadDashboard(true);
+    $("logoutBtn").onclick = () => {
+      sessionStorage.removeItem(TOKEN_KEY);
+      $("dash").hidden = true;
+      $("authBox").hidden = false;
+      $("tokenInput").value = "";
+    };
+
+    if (getToken()) loadDashboard(false);
+  </script>
+</body>
+</html>
