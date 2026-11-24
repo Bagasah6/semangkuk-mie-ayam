@@ -21,17 +21,25 @@
     {
       "binding": "DB",
       "database_name": "semangkuk-mie-ayam-db",
-      "database_id": "REPLACE_WITH_PRODUCTION_D1_ID"
+      "database_id": "621c4563-983a-445e-b73d-3e14d06d8592"
     }
   ],
   "env": {
     "staging": {
       "name": "semangkuk-mie-ayam-buffer-staging",
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "ANALYTICS_BUFFER",
+            "class_name": "AnalyticsBuffer"
+          }
+        ]
+      },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "semangkuk-mie-ayam-db-staging",
-          "database_id": "REPLACE_WITH_STAGING_D1_ID"
+          "database_id": "447594e6-c488-4f45-9231-d36fa5b1fe82"
         }
       ]
     }
